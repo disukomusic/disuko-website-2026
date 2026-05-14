@@ -10,6 +10,8 @@ import {
 import { ModelViewer } from "./components/ModelViewer";
 import { MultiImageSlider } from "./components/MultiImageSlider";
 
+import { MusicPlayerRoot, MusicControl, MusicSeekBar } from "./components/MusicPlayer";
+
 export const PLASMIC = initPlasmicLoader({
   projects: [
     {
@@ -168,4 +170,91 @@ PLASMIC.registerComponent(MultiImageSlider, {
       hidePlaceholder: true,
     },
   },
+})
+
+PLASMIC.registerComponent(MusicPlayerRoot, {
+  name: 'MusicPlayerRoot',
+  displayName: 'Music Player (Root)',
+  providesData: true,
+  props: {
+    tracks: {
+      type: 'array',
+      defaultValue: [
+        {
+          name: 'Lofi Study Beat',
+          artist: 'Sample Artist',
+          url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+          artwork: 'https://via.placeholder.com/300'
+        }
+      ],
+      itemType: {
+        type: 'object',
+        nameFunc: (item: any) => item?.name || 'New Track',
+        fields: {
+          name: 'string',
+          artist: 'string',
+          url: 'string',
+          artwork: 'imageUrl'
+        }
+      }
+    },
+    children: {
+      type: 'slot',
+      defaultValue: [
+        {
+          type: 'text',
+          value: 'Add your music player UI (artwork, text, controls) inside this container.'
+        }
+      ]
+    }
+  }
+});
+
+PLASMIC.registerComponent(MusicControl, {
+  name: 'MusicControl',
+  displayName: 'Music Control Button',
+  props: {
+    action: {
+      type: 'choice',
+      options: ['playPause', 'play', 'pause', 'stop', 'next', 'prev', 'fastForward', 'rewind'],
+      defaultValue: 'playPause'
+    },
+    children: {
+      type: 'slot',
+      defaultValue: [
+        {
+          type: 'text',
+          value: 'Play / Pause'
+        }
+      ]
+    }
+  }
+});
+
+PLASMIC.registerComponent(MusicSeekBar, {
+  name: 'Music Seek Bar',
+  props: {
+    className: 'string',
+    trackSlot: {
+      type: 'slot',
+      defaultValue: {
+        type: 'vbox',
+        styles: { width: '100%', height: '4px', backgroundColor: '#e0e0e0', borderRadius: '2px' }
+      }
+    },
+    fillSlot: {
+      type: 'slot',
+      defaultValue: {
+        type: 'vbox',
+        styles: { width: '100%', height: '4px', backgroundColor: '#000000', borderRadius: '2px' }
+      }
+    },
+    thumbSlot: {
+      type: 'slot',
+      defaultValue: {
+        type: 'vbox',
+        styles: { width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#000000' }
+      }
+    }
+  }
 });
