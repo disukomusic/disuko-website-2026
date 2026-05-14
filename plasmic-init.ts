@@ -24,6 +24,8 @@ export const PLASMIC = initPlasmicLoader({
   preview: true,
 });
 
+
+
 PLASMIC.registerComponent(TaskbarContainer, {
   name: "TaskbarContainer",
   providesData: true,
@@ -130,6 +132,18 @@ PLASMIC.registerComponent(ModelViewer, {
       defaultValue: "#ffffff",
       description: "Flat-mode tint color (multiplied with the model texture/base color)",
       advanced: false,
+    },
+  },
+  // ADD THIS BLOCK:
+  refActions: {
+    updateModel: {
+      description: "Change the 3D model URL dynamically",
+      argTypes: [
+        {
+          name: "url",
+          type: "string",
+        },
+      ],
     },
   },
 });

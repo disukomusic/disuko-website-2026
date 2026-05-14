@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import React, { useMemo, Suspense, useEffect, useState, useRef } from 'react';
+import React, { useMemo, Suspense, useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stage, useGLTF, Html, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
@@ -24,6 +24,29 @@ function Model({
                    animationName
                }: InnerModelProps) {
     const { scene, animations } = useGLTF(url);
+
+    // 1. Calculate a normalized scale and position to fit the model within the strict camera view
+    const normalizedTransform = useMemo(() => {
+        const box = new THREE.Box3().setFromObject(scene);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+
+        const maxDim = Math.max(size.x, size.y, size.z);
+
+        // At distance=3 and fov=20, the visible height is roughly ~1.05 units.
+        // A targetSize of 0.9 leaves comfortable padding around the model.
+        const targetSize = 0.9;
+        const scale = maxDim > 0 ? targetSize / maxDim : 1;
+
+        return {
+            scale: [scale, scale, scale] as [number, number, number],
+            position: [
+                -center.x * scale,
+                -center.y * scale,
+                -center.z * scale
+            ] as [number, number, number]
+        };
+    }, [scene]);
 
     const processedSceneForModes = useMemo(() => {
         const freshClone = clone(scene);
@@ -94,7 +117,11 @@ function Model({
     }, [actions, selectedAnimation]);
 
     return (
-        <primitive object={processedSceneForModes} dispose={null} />
+        // 2. Apply the calculated bounding offsets to the parent group instead of the primitive 
+        // to ensure root bone animations remain unaffected.
+        <group position={normalizedTransform.position} scale={normalizedTransform.scale}>
+            <primitive object={processedSceneForModes} dispose={null} />
+        </group>
     );
 }
 
@@ -108,18 +135,33 @@ export interface ModelViewerProps {
     animationName?: string;
 }
 
-export function ModelViewer({
-                                className,
-                                modelUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb',
-                                renderMode = 'flat',
-                                wireframeColor = '#333333',
-                                flatColor = '#ffffff',
-                                animationName
-                            }: ModelViewerProps) {
+export interface ModelViewerRef {
+    updateModel: (url: string) => void;
+}
+
+export const ModelViewer = forwardRef<ModelViewerRef, ModelViewerProps>(({
+                                                                             className,
+                                                                             modelUrl = 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb',
+                                                                             renderMode = 'flat',
+                                                                             wireframeColor = '#333333',
+                                                                             flatColor = '#ffffff',
+                                                                             animationName
+                                                                         }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isVisible, setIsVisible] = useState(false);
-    // Added isMounted state to prevent SSR crashes in Vercel
     const [isMounted, setIsMounted] = useState(false);
+
+    const [currentModelUrl, setCurrentModelUrl] = useState(modelUrl);
+
+    useEffect(() => {
+        setCurrentModelUrl(modelUrl);
+    }, [modelUrl]);
+
+    useImperativeHandle(ref, () => ({
+        updateModel: (newUrl: string) => {
+            setCurrentModelUrl(newUrl);
+        }
+    }));
 
     useEffect(() => {
         setIsMounted(true);
@@ -135,7 +177,6 @@ export function ModelViewer({
         return () => observer.disconnect();
     }, [isMounted]);
 
-    // Return an empty div during Server-Side Rendering
     if (!isMounted) {
         return <div className={className} style={{ width: '100%', height: '100%', minHeight: '300px' }} />;
     }
@@ -144,27 +185,28 @@ export function ModelViewer({
         <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', minHeight: '300px' }}>
             {isVisible && (
                 <Canvas
-                    dpr={0.5} // Forces half resolution
-                    gl={{ antialias: false }} // Disables smoothing to allow sharp pixels
-                    style={{ imageRendering: 'pixelated' }} // Nearest-neighbor scaling
+                    dpr={0.5}
+                    gl={{ antialias: false }}
+                    style={{ imageRendering: 'pixelated' }}
                     camera={{ fov: 20 }}
                 >
                     <Suspense fallback={<Html center>Loading 3D Model...</Html>}>
                         <Stage preset="rembrandt" intensity={1.8} environment="city" shadows={false} adjustCamera={false}>
                             <Model
-                                url={modelUrl}
+                                url={currentModelUrl}
                                 renderMode={renderMode}
                                 wireframeColor={wireframeColor}
                                 flatColor={flatColor}
                                 animationName={animationName}
-
                             />
                         </Stage>
                     </Suspense>
-
-                    <OrbitControls target={[0, 0.05, 0]} makeDefault autoRotate={false} enableZoom={false} enablePan={false} minDistance={3} maxDistance={3} />
+                    {/* 3. Changed target to [0,0,0] so it looks perfectly at the mathematically centered model */}
+                    <OrbitControls target={[0, 0, 0]} makeDefault autoRotate={false} enableZoom={false} enablePan={false} minDistance={3} maxDistance={3} />
                 </Canvas>
             )}
         </div>
     );
-}
+});
+
+ModelViewer.displayName = "ModelViewer";
