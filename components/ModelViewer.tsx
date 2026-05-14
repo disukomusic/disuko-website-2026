@@ -1,8 +1,19 @@
-﻿import React, { useMemo, Suspense, useEffect, useState, useRef } from 'react';
+﻿"use client";
+
+import React, { useMemo, Suspense, useEffect, useState, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stage, useGLTF, Html, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+
+// --- Added strictly typed props for the inner model to fix TS error ---
+interface InnerModelProps {
+    url: string;
+    renderMode: string;
+    wireframeColor: string;
+    flatColor: string;
+    animationName?: string;
+}
 
 // --- Inner Model Wrapper ---
 function Model({
@@ -11,7 +22,7 @@ function Model({
                    wireframeColor,
                    flatColor,
                    animationName
-               }: any) {
+               }: InnerModelProps) {
     const { scene, animations } = useGLTF(url);
 
     const processedSceneForModes = useMemo(() => {
@@ -107,15 +118,27 @@ export function ModelViewer({
                             }: ModelViewerProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isVisible, setIsVisible] = useState(false);
+    // Added isMounted state to prevent SSR crashes in Vercel
+    const [isMounted, setIsMounted] = useState(false);
 
     useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isMounted) return;
         const observer = new IntersectionObserver(
             ([entry]) => setIsVisible(entry.isIntersecting),
             { rootMargin: '200px' }
         );
         if (containerRef.current) observer.observe(containerRef.current);
         return () => observer.disconnect();
-    }, []);
+    }, [isMounted]);
+
+    // Return an empty div during Server-Side Rendering
+    if (!isMounted) {
+        return <div className={className} style={{ width: '100%', height: '100%', minHeight: '300px' }} />;
+    }
 
     return (
         <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', minHeight: '300px' }}>
@@ -134,7 +157,7 @@ export function ModelViewer({
                                 wireframeColor={wireframeColor}
                                 flatColor={flatColor}
                                 animationName={animationName}
-                                
+
                             />
                         </Stage>
                     </Suspense>
