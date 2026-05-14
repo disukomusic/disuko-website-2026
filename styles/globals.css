@@ -1,6 +1,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* UI font stack: custom fonts from /public/fonts then system fallbacks */
+  --ui-font: 'Fourd', 'DESIB', 'Rimouski', Arial, Helvetica, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -8,6 +10,32 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+}
+
+/* Fonts placed in public/fonts/ are served from the site root at /fonts/... */
+@font-face {
+  font-family: 'Fourd';
+  src: url('/fonts/Fourd.otf') format('opentype'),
+       url('/fonts/Fourd.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'DESIB';
+  src: url('/fonts/DESIB___.TTF') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Rimouski';
+  src: url('/fonts/rimouski sb.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
 }
 
 html,
@@ -19,7 +47,8 @@ body {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  /* Use the custom font stack, fall back to system fonts */
+  font-family: var(--ui-font);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
