@@ -208,8 +208,7 @@ export const ModelViewer = forwardRef<ModelViewerRef, ModelViewerProps>(({
                     camera={{ fov: 20 }}
                 >
                     <Suspense fallback={<Html center>Loading 3D Model...</Html>}>
-                        {/* FIX: Added center={false} to stop Stage from fighting your custom centering math */}
-                        <Stage preset="rembrandt" intensity={1} environment="sunset" shadows={true} adjustCamera={false} center={false}>
+                        <Stage preset="rembrandt" intensity={1} environment="sunset" shadows={true} adjustCamera={false}>
                             <Model
                                 key={currentModelUrl} // FIX: Forces React to mount a completely fresh instance when the URL changes
                                 url={currentModelUrl}
