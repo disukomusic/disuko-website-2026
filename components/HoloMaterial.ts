@@ -185,10 +185,12 @@ export const createHoloMaterial = () => new THREE.ShaderMaterial({
             vec3 fresnelGlow = color5 * fresnelTerm * 1.2;
 
             // --- 3. Twinkle Map ---
-            float twinkleMask = smoothstep(0.2, 0.8, snoise(scaledPos * 1.5 - (time * 0.05)));
-            float twinkles = step(0.88, snoise(scaledPos * 6.0 + (time * 0.1)));
+            float twinkleMask = smoothstep(0.1, 0.9, snoise(scaledPos * 1.5 - (time * 0.05)));
+            float twinkles = step(0.78, snoise(scaledPos * 30.0 + (time * 0.1)));
+            float twinkles2 = step(0.82, snoise(scaledPos * 100.0 + (time * 0.15)));
+            float starField = max(twinkles, twinkles2 * 0.8);
             // Reduce twinkle brightness so it doesn't wash out the ramp
-            vec3 twinkleGlow = vec3(1.0) * (twinkles * twinkleMask) * 4.0;
+            vec3 twinkleGlow = vec3(0.0, 1.0, 1.0) * (starField * twinkleMask) * 10.0;
 
             // --- Composite ---
             vec3 compositeColor = finalColor + fresnelGlow + twinkleGlow;
