@@ -13,6 +13,7 @@ import { WindowProvider } from "@/components/WindowSystem";
 import { MusicPlayerRoot, MusicControl, MusicSeekBar } from "./components/MusicPlayer";
 import {BassReactor} from "./components/BassReactor";
 import { MusicWindowSync } from "./components/MusicWindowSync";
+import {StartMenuButton} from "@/components/StartMenuButton";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -350,5 +351,14 @@ PLASMIC.registerComponent(MusicWindowSync, {
       defaultValue: 500,
       description: 'How long the fade-out lasts in milliseconds.',
     }
+  }
+});
+
+PLASMIC.registerComponent(StartMenuButton, {
+  name: 'StartMenuButton',
+    displayName: 'Start Menu Button',
+    description: 'A pre-styled TaskbarButton that toggles a window with the ID "start-menu".',
+  props: {
+    label: "string",
   }
 });

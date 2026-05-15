@@ -1,7 +1,6 @@
 ﻿import React, { useState, useRef, useEffect, createContext, useContext } from 'react';
 import { DataProvider } from '@plasmicapp/host';
 
-// 1. Create the React Context
 export const MusicContext = createContext<any>(null);
 
 export function MusicPlayerRoot({ tracks, children, className }: any) {
@@ -38,7 +37,6 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
         }
     }, [currentTrackIndex]);
 
-    // Added currentTime, duration, and seekTo to the context
     const contextValue = {
         isPlaying, togglePlay, play, pause, stop, nextTrack, prevTrack, seek, seekTo, currentTime, duration, audioRef
     };
@@ -62,7 +60,6 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
         durationFormatted: formatTime(duration),
         timeRemainingFormatted: formatTime(timeRemaining),
         isPlaying,
-        // NEW: Expose raw progress percentage (0-100) for custom UI styling if needed
         progressPercentage: duration > 0 ? (currentTime / duration) * 100 : 0
     };
 
