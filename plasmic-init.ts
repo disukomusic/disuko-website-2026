@@ -39,7 +39,8 @@ PLASMIC.registerGlobalContext(WindowProvider, {
     defaultSoundFocus: { type: "string", displayName: "Sound: Focus" },
     defaultSoundDragStart: { type: "string", displayName: "Sound: Drag Start" },
     defaultSoundDragEnd: { type: "string", displayName: "Sound: Drag End" },
-    defaultSoundClick: { type: "string", displayName: "Sound: Button Click" }
+    defaultSoundClick: { type: "string", displayName: "Sound: Button Click" },
+    defaultSoundTaskbarHover: { type: "string", displayName: "Sound: Taskbar Hover" }
   }
 });
 
@@ -63,6 +64,7 @@ PLASMIC.registerComponent(TaskbarButton, {
     },
     children: { type: "slot" },
     soundClick: { type: "string" },
+    soundHover: { type: "string" },
     muteSounds: { type: "boolean", defaultValue: false },
   },
 });

@@ -31,6 +31,7 @@ export type DefaultSounds = {
     dragStart?: string;
     dragEnd?: string;
     click?: string;
+    taskbarHover?: string;
 };
 
 // --- GLOBAL CONTEXT ---
@@ -70,6 +71,7 @@ interface WindowProviderProps {
     defaultSoundDragStart?: string;
     defaultSoundDragEnd?: string;
     defaultSoundClick?: string;
+    defaultSoundTaskbarHover?: string;
 }
 
 export const WindowProvider = ({
@@ -80,7 +82,8 @@ export const WindowProvider = ({
                                    defaultSoundFocus,
                                    defaultSoundDragStart,
                                    defaultSoundDragEnd,
-                                   defaultSoundClick
+                                   defaultSoundClick,
+                                   defaultSoundTaskbarHover
                                }: WindowProviderProps) => {
 
     const defaultSounds: DefaultSounds = {
@@ -90,6 +93,7 @@ export const WindowProvider = ({
         dragStart: defaultSoundDragStart,
         dragEnd: defaultSoundDragEnd,
         click: defaultSoundClick,
+        taskbarHover: defaultSoundTaskbarHover,
     };
     const [windowStates, setWindowStates] = useState<Record<string, WindowState>>({});
     const [windowOrder, setWindowOrder] = useState<string[]>([]);

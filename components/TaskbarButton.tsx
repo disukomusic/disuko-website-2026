@@ -7,10 +7,19 @@ export interface TaskbarButtonProps {
     windowId: string;
     soloMode?: boolean;
     soundClick?: string;
+    soundHover?: string;
     muteSounds?: boolean;
 }
 
-export const TaskbarButton = ({ className, children, windowId, soloMode = false, soundClick, muteSounds = false }: TaskbarButtonProps) => {
+export const TaskbarButton = ({
+                                  className,
+                                  children,
+                                  windowId,
+                                  soloMode = false,
+                                  soundClick,
+                                  soundHover,
+                                  muteSounds = false
+                              }: TaskbarButtonProps) => {
     const { toggleWindow, closeWindow, setTaskbarHover, windowStates, defaultSounds, globalMute } = useWindowContext();
     const isOpen = windowStates[windowId]?.isOpen || false;
 
@@ -25,12 +34,21 @@ export const TaskbarButton = ({ className, children, windowId, soloMode = false,
         toggleWindow(windowId);
     };
 
+    const handleMouseEnter = () => {
+        setTaskbarHover(windowId, true);
+        playAudio(soundHover || defaultSounds.taskbarHover, muteSounds || globalMute);
+    };
+
+    const handleMouseLeave = () => {
+        setTaskbarHover(windowId, false);
+    };
+
     return (
         <div
             className={className}
             onClick={handleClick}
-            onMouseEnter={() => setTaskbarHover(windowId, true)}
-            onMouseLeave={() => setTaskbarHover(windowId, false)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             data-taskbar-btn-id={windowId}
             data-window-open={isOpen}
             style={{ cursor: 'pointer' }}
