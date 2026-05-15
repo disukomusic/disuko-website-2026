@@ -49,24 +49,25 @@ export function BassReactor({
         const audioCtx = (window as any).sharedAudioCtx;
 
         if (!analyserRef.current) {
-            analyserRef.current = audioCtx.createAnalyser();
+            const analyser = audioCtx.createAnalyser();
+            analyserRef.current = analyser;
             // Higher fftSize (1024) gives us finer frequency bins.
             // At 44.1kHz sample rate, bins are ~43Hz wide.
-            analyserRef.current.fftSize = 1024;
-            const bufferLength = analyserRef.current.frequencyBinCount;
+            analyser.fftSize = 1024;
+            const bufferLength = analyser.frequencyBinCount;
             dataArrayRef.current = new Uint8Array(bufferLength);
 
             if (!(audioEl as any)._audioSourceNode) {
                 try {
                     const source = audioCtx.createMediaElementSource(audioEl);
                     (audioEl as any)._audioSourceNode = source;
-                    source.connect(analyserRef.current);
-                    analyserRef.current.connect(audioCtx.destination);
+                    source.connect(analyser);
+                    analyser.connect(audioCtx.destination);
                 } catch (e) {
                     console.error("Failed to connect audio source:", e);
                 }
             } else {
-                (audioEl as any)._audioSourceNode.connect(analyserRef.current);
+                (audioEl as any)._audioSourceNode.connect(analyser);
             }
         }
 
