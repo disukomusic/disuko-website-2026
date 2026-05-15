@@ -1,12 +1,12 @@
 ﻿"use client";
 
 import React, { useMemo, Suspense, useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber'; // <-- Added useFrame here
 import { OrbitControls, Stage, useGLTF, Html, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
+import { createHoloMaterial } from './HoloMaterial'; 
 
-// --- Added strictly typed props for the inner model to fix TS error ---
 interface InnerModelProps {
     url: string;
     renderMode: string;
@@ -24,17 +24,16 @@ function Model({
                    animationName
                }: InnerModelProps) {
     const { scene, animations } = useGLTF(url);
+    const holoMaterialsRef = useRef<THREE.ShaderMaterial[]>([]);
 
-    // 1. Calculate a normalized scale and position to fit the model within the strict camera view
     const normalizedTransform = useMemo(() => {
+        scene.updateMatrixWorld(true);
+
         const box = new THREE.Box3().setFromObject(scene);
         const size = box.getSize(new THREE.Vector3());
         const center = box.getCenter(new THREE.Vector3());
 
         const maxDim = Math.max(size.x, size.y, size.z);
-
-        // At distance=3 and fov=20, the visible height is roughly ~1.05 units.
-        // A targetSize of 0.9 leaves comfortable padding around the model.
         const targetSize = 0.9;
         const scale = maxDim > 0 ? targetSize / maxDim : 1;
 
@@ -52,15 +51,25 @@ function Model({
         const freshClone = clone(scene);
         const isWireframe = renderMode === 'wireframe';
 
+        holoMaterialsRef.current = [];
+
         freshClone.traverse((child) => {
             if ((child as THREE.Mesh).isMesh) {
                 const mesh = child as THREE.Mesh;
                 const sourceMaterial = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
                 const sourceAsBasicInput = sourceMaterial as unknown as { map?: THREE.Texture | null };
 
-                // Create the primary material
                 let newMaterial;
-                if (isWireframe) {
+
+                // Check for HOLO material slot
+                if (sourceMaterial && sourceMaterial.name === 'HOLO') {
+                    newMaterial = createHoloMaterial();
+
+                    newMaterial.uniforms.meshScale.value = 1.0;
+                    
+                    holoMaterialsRef.current.push(newMaterial);
+                }
+                else if (isWireframe) {
                     newMaterial = new THREE.MeshBasicMaterial({ color: wireframeColor, wireframe: true });
                 } else if (sourceMaterial) {
                     newMaterial = new THREE.MeshStandardMaterial({
@@ -100,6 +109,16 @@ function Model({
         };
     }, [processedSceneForModes]);
 
+    // Animate the HOLO shader time uniform
+    useFrame(({ clock }) => {
+        const time = clock.getElapsedTime();
+        holoMaterialsRef.current.forEach((mat) => {
+            if (mat.uniforms && mat.uniforms.time) {
+                mat.uniforms.time.value = time;
+            }
+        });
+    });
+
     const { actions, names } = useAnimations(animations, processedSceneForModes);
 
     const selectedAnimation = useMemo(() => {
@@ -117,8 +136,6 @@ function Model({
     }, [actions, selectedAnimation]);
 
     return (
-        // 2. Apply the calculated bounding offsets to the parent group instead of the primitive 
-        // to ensure root bone animations remain unaffected.
         <group position={normalizedTransform.position} scale={normalizedTransform.scale}>
             <primitive object={processedSceneForModes} dispose={null} />
         </group>
@@ -185,14 +202,16 @@ export const ModelViewer = forwardRef<ModelViewerRef, ModelViewerProps>(({
         <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', minHeight: '300px' }}>
             {isVisible && (
                 <Canvas
-                    dpr={0.5}
-                    gl={{ antialias: false }}
+                    dpr={1}
+                    gl={{ antialias: true }}
                     style={{ imageRendering: 'pixelated' }}
                     camera={{ fov: 20 }}
                 >
                     <Suspense fallback={<Html center>Loading 3D Model...</Html>}>
-                        <Stage preset="rembrandt" intensity={1.8} environment="city" shadows={false} adjustCamera={false}>
+                        {/* FIX: Added center={false} to stop Stage from fighting your custom centering math */}
+                        <Stage preset="rembrandt" intensity={1} environment="sunset" shadows={true} adjustCamera={false} center={false}>
                             <Model
+                                key={currentModelUrl} // FIX: Forces React to mount a completely fresh instance when the URL changes
                                 url={currentModelUrl}
                                 renderMode={renderMode}
                                 wireframeColor={wireframeColor}
@@ -201,7 +220,6 @@ export const ModelViewer = forwardRef<ModelViewerRef, ModelViewerProps>(({
                             />
                         </Stage>
                     </Suspense>
-                    {/* 3. Changed target to [0,0,0] so it looks perfectly at the mathematically centered model */}
                     <OrbitControls target={[0, 0, 0]} makeDefault autoRotate={false} enableZoom={false} enablePan={false} minDistance={3} maxDistance={3} />
                 </Canvas>
             )}

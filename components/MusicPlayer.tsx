@@ -2,7 +2,7 @@
 import { DataProvider } from '@plasmicapp/host';
 
 // 1. Create the React Context
-const MusicContext = createContext<any>(null);
+export const MusicContext = createContext<any>(null);
 
 export function MusicPlayerRoot({ tracks, children, className }: any) {
     const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -40,7 +40,7 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
 
     // Added currentTime, duration, and seekTo to the context
     const contextValue = {
-        isPlaying, togglePlay, play, pause, stop, nextTrack, prevTrack, seek, seekTo, currentTime, duration
+        isPlaying, togglePlay, play, pause, stop, nextTrack, prevTrack, seek, seekTo, currentTime, duration, audioRef
     };
 
     // Helper to format seconds into M:SS
@@ -76,6 +76,7 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
                         onTimeUpdate={onTimeUpdate}
                         onDurationChange={onDurationChange}
                         onEnded={onEnded}
+                        crossOrigin="anonymous" //allow access to audio metadata for accurate duration and seeking, even if the source is from a different origin (as long as CORS headers are properly set on the server)
                     />
                     {children}
                 </div>

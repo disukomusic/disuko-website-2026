@@ -1,5 +1,38 @@
 ﻿import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 
+// --- Audio Utility ---
+const audioDebounceMap = new Map<string, number>();
+
+export const playAudio = (url?: string, muted?: boolean) => {
+    if (!url || muted) return;
+
+    const now = Date.now();
+    const lastPlayed = audioDebounceMap.get(url) || 0;
+
+    // Prevent the exact same sound from playing multiple times within 50ms.
+    // This perfectly catches simultaneous useEffect fires across multiple components.
+    if (now - lastPlayed < 50) return;
+
+    audioDebounceMap.set(url, now);
+
+    try {
+        const audio = new Audio(url);
+        // Catch is required because browsers block autoplaying audio before the user interacts with the page
+        audio.play().catch(e => console.warn("Audio play blocked/failed:", e));
+    } catch (e) {
+        console.error("Invalid audio playback", e);
+    }
+};
+
+export type DefaultSounds = {
+    open?: string;
+    close?: string;
+    focus?: string;
+    dragStart?: string;
+    dragEnd?: string;
+    click?: string;
+};
+
 // --- GLOBAL CONTEXT ---
 type WindowState = {
     isOpen: boolean;
@@ -8,12 +41,15 @@ type WindowState = {
 
 type WindowContextType = {
     windowStates: Record<string, WindowState>;
-    windowOrder: string[]; // Tracks z-index. Last item is on top.
+    windowOrder: string[];
     toggleWindow: (id: string) => void;
     closeWindow: (id: string) => void;
     focusWindow: (id: string) => void;
     setTaskbarHover: (id: string, isHovered: boolean) => void;
     registerWindow: (id: string, defaultOpen?: boolean) => void;
+    defaultSounds: DefaultSounds;
+    globalMute: boolean;
+    setGlobalMute: (mute: boolean) => void;
 };
 
 const WindowContext = createContext<WindowContextType | null>(null);
@@ -24,9 +60,40 @@ export const useWindowContext = () => {
     return ctx;
 };
 
-export const WindowProvider = ({ children }: { children: ReactNode }) => {
+
+interface WindowProviderProps {
+    children: ReactNode;
+    initialGlobalMute?: boolean;
+    defaultSoundOpen?: string;
+    defaultSoundClose?: string;
+    defaultSoundFocus?: string;
+    defaultSoundDragStart?: string;
+    defaultSoundDragEnd?: string;
+    defaultSoundClick?: string;
+}
+
+export const WindowProvider = ({
+                                   children,
+                                   initialGlobalMute = false,
+                                   defaultSoundOpen,
+                                   defaultSoundClose,
+                                   defaultSoundFocus,
+                                   defaultSoundDragStart,
+                                   defaultSoundDragEnd,
+                                   defaultSoundClick
+                               }: WindowProviderProps) => {
+
+    const defaultSounds: DefaultSounds = {
+        open: defaultSoundOpen,
+        close: defaultSoundClose,
+        focus: defaultSoundFocus,
+        dragStart: defaultSoundDragStart,
+        dragEnd: defaultSoundDragEnd,
+        click: defaultSoundClick,
+    };
     const [windowStates, setWindowStates] = useState<Record<string, WindowState>>({});
     const [windowOrder, setWindowOrder] = useState<string[]>([]);
+    const [globalMute, setGlobalMute] = useState(initialGlobalMute);
 
     const registerWindow = useCallback((id: string, defaultOpen = false) => {
         setWindowStates((prev) => {
@@ -69,7 +136,10 @@ export const WindowProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     return (
-        <WindowContext.Provider value={{ windowStates, windowOrder, toggleWindow, closeWindow, focusWindow, setTaskbarHover, registerWindow }}>
+        <WindowContext.Provider value={{
+            windowStates, windowOrder, toggleWindow, closeWindow, focusWindow, setTaskbarHover, registerWindow,
+            defaultSounds, globalMute, setGlobalMute
+        }}>
             {children}
         </WindowContext.Provider>
     );

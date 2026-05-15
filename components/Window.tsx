@@ -1,5 +1,5 @@
 ﻿import React, { ReactNode, useRef, useEffect, useState, createContext } from "react";
-import { CurrentWindowContext, useWindowContext } from "@/components/WindowSystem";
+import { CurrentWindowContext, useWindowContext, playAudio } from "@/components/WindowSystem";
 import { useDesktopBounds } from "./Desktop";
 import { motion, useMotionValue, useTransform, useVelocity, useSpring, useDragControls } from "framer-motion";
 
@@ -11,20 +11,21 @@ export interface WindowProps {
     initialX?: string | number;
     initialY?: string | number;
     initialPosition?: string;
+    soundOpen?: string;
+    soundClose?: string;
+    soundFocus?: string;
+    soundDragStart?: string;
+    soundDragEnd?: string;
+    muteSounds?: boolean;
 }
 
 export const WindowDragContext = createContext<any>(null);
 
 export const Window = ({
-                           className,
-                           children,
-                           windowId,
-                           defaultOpen = false,
-                           initialX = 0,
-                           initialY = 0,
-                           initialPosition
+                           className, children, windowId, defaultOpen = false, initialX = 0, initialY = 0, initialPosition,
+                           soundOpen, soundClose, soundFocus, soundDragStart, soundDragEnd, muteSounds = false
                        }: WindowProps) => {
-    const { windowStates, windowOrder, focusWindow, registerWindow } = useWindowContext();
+    const { windowStates, windowOrder, focusWindow, registerWindow, defaultSounds, globalMute } = useWindowContext();
     const windowRef = useRef<HTMLDivElement>(null);
     const dragControls = useDragControls();
 
@@ -63,16 +64,35 @@ export const Window = ({
         }
     }
 
+    const state = windowStates[windowId];
+    const prevIsOpen = useRef(defaultOpen);
+
     React.useEffect(() => {
         registerWindow(windowId, defaultOpen);
     }, [windowId, registerWindow, defaultOpen]);
 
-    const state = windowStates[windowId];
-
-    // Immediately mount children when the window opens
     useEffect(() => {
-        if (state?.isOpen) setIsRendered(true);
+        if (!state) return;
+
+        if (state.isOpen !== prevIsOpen.current) {
+            const isMuted = muteSounds || globalMute;
+            if (state.isOpen) {
+                setIsRendered(true);
+                playAudio(soundOpen || defaultSounds.open, isMuted);
+            } else {
+                playAudio(soundClose || defaultSounds.close, isMuted);
+            }
+            prevIsOpen.current = state.isOpen;
+        }
     }, [state?.isOpen]);
+
+    const handlePointerDown = () => {
+        const isFocused = windowOrder[windowOrder.length - 1] === windowId;
+        if (!isFocused) {
+            playAudio(soundFocus || defaultSounds.focus, muteSounds || globalMute);
+        }
+        focusWindow(windowId);
+    };
 
     const x = useMotionValue(0);
     const y = useMotionValue(0);
@@ -123,7 +143,9 @@ export const Window = ({
                     dragMomentum={false}
                     dragConstraints={desktopBoundsRef || undefined}
                     dragElastic={0}
-                    onPointerDown={() => focusWindow(windowId)}
+                    onPointerDown={handlePointerDown}
+                    onDragStart={() => playAudio(soundDragStart || defaultSounds.dragStart, muteSounds || globalMute)}
+                    onDragEnd={() => playAudio(soundDragEnd || defaultSounds.dragEnd, muteSounds || globalMute)}
                     initial={false}
                     animate={{
                         scale: state.isOpen ? 1 : 0,
@@ -152,6 +174,8 @@ export const Window = ({
                     }}
                     data-focused={isFocused}
                     data-taskbar-hovered={state.isTaskbarHovered}
+                    
+                    
                 >
                     {isRendered ? children : null}
                 </motion.div>

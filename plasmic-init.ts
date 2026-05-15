@@ -9,8 +9,10 @@ import {
 } from "@/components";
 import { ModelViewer } from "./components/ModelViewer";
 import { MultiImageSlider } from "./components/MultiImageSlider";
-
+import { WindowProvider } from "@/components/WindowSystem";
 import { MusicPlayerRoot, MusicControl, MusicSeekBar } from "./components/MusicPlayer";
+import {BassReactor} from "./components/BassReactor";
+import { MusicWindowSync } from "./components/MusicWindowSync";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -24,7 +26,22 @@ export const PLASMIC = initPlasmicLoader({
   preview: true,
 });
 
-
+PLASMIC.registerGlobalContext(WindowProvider, {
+  name: "WindowSystemProvider",
+  props: {
+    initialGlobalMute: {
+      type: "boolean",
+      defaultValue: false,
+      displayName: "Mute All Sounds (Default)"
+    },
+    defaultSoundOpen: { type: "string", displayName: "Sound: Open" },
+    defaultSoundClose: { type: "string", displayName: "Sound: Close" },
+    defaultSoundFocus: { type: "string", displayName: "Sound: Focus" },
+    defaultSoundDragStart: { type: "string", displayName: "Sound: Drag Start" },
+    defaultSoundDragEnd: { type: "string", displayName: "Sound: Drag End" },
+    defaultSoundClick: { type: "string", displayName: "Sound: Button Click" }
+  }
+});
 
 PLASMIC.registerComponent(TaskbarContainer, {
   name: "TaskbarContainer",
@@ -45,6 +62,8 @@ PLASMIC.registerComponent(TaskbarButton, {
       description: "When enabled, clicking this will close all other open windows."
     },
     children: { type: "slot" },
+    soundClick: { type: "string" },
+    muteSounds: { type: "boolean", defaultValue: false },
   },
 });
 
@@ -70,6 +89,13 @@ PLASMIC.registerComponent(Window, {
       description: "Initial vertical fallback (px)"
     },
     children: { type: "slot" },
+
+    soundOpen: { type: "string", description: "URL to an audio file (.mp3, .wav)" },
+    soundClose: { type: "string" },
+    soundFocus: { type: "string" },
+    soundDragStart: { type: "string" },
+    soundDragEnd: { type: "string" },
+    muteSounds: { type: "boolean", defaultValue: false, description: "Mute all interactions on this specific window" },
   },
 });
 
@@ -86,6 +112,8 @@ PLASMIC.registerComponent(WindowCloseButton, {
   providesData: true,
   props: {
     children: { type: "slot" },
+    soundClick: { type: "string" },
+    muteSounds: { type: "boolean", defaultValue: false },
   },
 });
 
@@ -269,6 +297,56 @@ PLASMIC.registerComponent(MusicSeekBar, {
         type: 'vbox',
         styles: { width: '12px', height: '12px', borderRadius: '50%', backgroundColor: '#000000' }
       }
+    }
+  }
+});
+
+PLASMIC.registerComponent(BassReactor, {
+  name: 'BassReactor',
+  displayName: 'Bass Reactor',
+  description: 'Makes its children bounce, shake, and rotate in reaction to the MusicPlayer\'s bass frequencies.',
+  props: {
+    children: {
+      type: 'slot',
+      defaultValue: [
+        {
+          type: 'text',
+          value: 'Drop an image or button here to make it bounce to the bass!'
+        }
+      ]
+    },
+    sensitivity: {
+      type: 'number',
+      defaultValue: 1.0,
+      description: 'How dramatic the shake and scale effect is.'
+    },
+    bassThreshold: {
+      type: 'number',
+      defaultValue: 0.05,
+      description: 'How loud the bass needs to be to trigger a shake (range: 0 to 1).'
+    },
+    rotationStrength: {
+      type: 'number',
+      defaultValue: 10.0,
+      description: 'How much the element tilts and rotates when the bass hits.'
+    }
+  }
+});
+
+PLASMIC.registerComponent(MusicWindowSync, {
+  name: 'MusicWindowSync',
+  displayName: 'Music Window Sync Bridge',
+  description: 'Invisibly listens to a specific Window ID and fades out the music player when that window is minimized.',
+  props: {
+    windowId: {
+      type: 'string',
+      defaultValue: 'my-window-1',
+      description: 'MUST MATCH the ID of the window containing your music player UI.',
+    },
+    fadeDuration: {
+      type: 'number',
+      defaultValue: 500,
+      description: 'How long the fade-out lasts in milliseconds.',
     }
   }
 });
