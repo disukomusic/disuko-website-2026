@@ -13,6 +13,7 @@ import { WindowProvider } from "@/components/WindowSystem";
 import { MusicPlayerRoot, MusicControl, MusicSeekBar } from "./components/MusicPlayer";
 import {BassReactor} from "./components/BassReactor";
 import { MusicWindowSync } from "./components/MusicWindowSync";
+import { ImageCarousel} from "@/components/ImageCarousel";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -56,7 +57,11 @@ PLASMIC.registerComponent(TaskbarButton, {
   name: "TaskbarButton",
   providesData: true,
   props: {
-    windowId: { type: "string", defaultValue: "my-window-1" },
+    targetWindowIds: {
+      type: "string",
+      defaultValue: "my-window-1",
+      description: "Comma-separated IDs (e.g., 'music-main, music-desc-1')"
+    },
     soloMode: {
       type: "boolean",
       defaultValue: false,
@@ -75,6 +80,11 @@ PLASMIC.registerComponent(Window, {
   props: {
     windowId: { type: "string", defaultValue: "my-window-1" },
     defaultOpen: { type: "boolean", defaultValue: false },
+    alwaysAtBack: {
+      type: "boolean",
+      defaultValue: false,
+      description: "Locks the z-index so this window is always behind the others."
+    },
     initialPosition: {
       type: "string",
       defaultValue: "",

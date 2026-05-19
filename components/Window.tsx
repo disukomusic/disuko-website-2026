@@ -17,13 +17,15 @@ export interface WindowProps {
     soundDragStart?: string;
     soundDragEnd?: string;
     muteSounds?: boolean;
+    alwaysAtBack?: boolean; // New prop added
 }
 
 export const WindowDragContext = createContext<any>(null);
 
 export const Window = ({
                            className, children, windowId, defaultOpen = false, initialX = 0, initialY = 0, initialPosition,
-                           soundOpen, soundClose, soundFocus, soundDragStart, soundDragEnd, muteSounds = false
+                           soundOpen, soundClose, soundFocus, soundDragStart, soundDragEnd, muteSounds = false,
+                           alwaysAtBack = false // Defaulting new prop to false
                        }: WindowProps) => {
     const { windowStates, windowOrder, focusWindow, registerWindow, defaultSounds, globalMute } = useWindowContext();
     const windowRef = useRef<HTMLDivElement>(null);
@@ -103,7 +105,7 @@ export const Window = ({
 
     useEffect(() => {
         if (state && !state.isOpen && windowRef.current && desktopBoundsRef?.current) {
-            const btn = document.querySelector(`[data-taskbar-btn-id="${windowId}"]`);
+            const btn = document.querySelector(`[data-taskbar-btn-id~="${windowId}"]`);
 
             if (btn) {
                 const btnRect = btn.getBoundingClientRect();
@@ -128,7 +130,7 @@ export const Window = ({
 
     if (!state) return null;
 
-    const zIndex = windowOrder.indexOf(windowId) + 10;
+    const calculatedZIndex = alwaysAtBack ? 1 : Math.max(10, windowOrder.indexOf(windowId) + 10);
     const isFocused = windowOrder[windowOrder.length - 1] === windowId;
 
     return (
@@ -143,13 +145,14 @@ export const Window = ({
                     dragMomentum={false}
                     dragConstraints={desktopBoundsRef || undefined}
                     dragElastic={0}
-                    onPointerDown={handlePointerDown}
+                    onPointerDownCapture={handlePointerDown}
                     onDragStart={() => playAudio(soundDragStart || defaultSounds.dragStart, muteSounds || globalMute)}
                     onDragEnd={() => playAudio(soundDragEnd || defaultSounds.dragEnd, muteSounds || globalMute)}
                     initial={false}
                     animate={{
                         scale: state.isOpen ? 1 : 0,
                         opacity: state.isOpen ? 1 : 0,
+                        // zIndex removed from here!
                     }}
                     transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.8 }}
                     onAnimationComplete={() => {
@@ -157,7 +160,6 @@ export const Window = ({
                             setOrigin({ x: "50%", y: "24px" });
                             setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
                         } else {
-                            // Safely unmount children to clear WebGL contexts / heavy elements
                             setIsRendered(false);
                         }
                     }}
@@ -170,12 +172,10 @@ export const Window = ({
                         pointerEvents: state.isOpen ? 'auto' : 'none',
                         flexDirection: 'column',
                         position: 'absolute',
-                        zIndex,
+                        zIndex: calculatedZIndex, // Forced directly into the DOM node here
                     }}
                     data-focused={isFocused}
                     data-taskbar-hovered={state.isTaskbarHovered}
-                    
-                    
                 >
                     {isRendered ? children : null}
                 </motion.div>
