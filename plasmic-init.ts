@@ -352,3 +352,41 @@ PLASMIC.registerComponent(MusicWindowSync, {
     }
   }
 });
+
+PLASMIC.registerComponent(ImageCarousel, {
+  name: "ImageCarousel",
+  displayName: "Image Carousel",
+  description: "A smooth, swipeable carousel with bouncy physics. Accepts any number of images or components.",
+  providesData: true,
+  props: {
+    children: {
+      type: "slot",
+      defaultValue: [
+        {
+          type: "img",
+          src: "https://via.placeholder.com/800x600/FFB6C1/000000?text=Slide+1"
+        },
+        {
+          type: "img",
+          src: "https://via.placeholder.com/800x600/ADD8E6/000000?text=Slide+2"
+        }
+      ]
+    },
+    leftArrow: {
+      type: "slot",
+      hidePlaceholder: true,
+      displayName: "Custom Left Arrow"
+    },
+    rightArrow: {
+      type: "slot",
+      hidePlaceholder: true,
+      displayName: "Custom Right Arrow"
+    },
+    slideGap: {
+      type: "number",
+      defaultValue: 0,
+      displayName: "Slide Gap (px)",
+      description: "Spacing between each slide in pixels."
+    }
+  }
+});
