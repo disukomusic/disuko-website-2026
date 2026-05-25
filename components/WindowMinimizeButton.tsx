@@ -1,22 +1,23 @@
 ﻿import React, {ReactNode} from "react";
 import { useCurrentWindow, useWindowContext, playAudio } from "@/components/WindowSystem";
 
-export interface WindowCloseButtonProps {
+export interface WindowMinimizeButtonProps {
     className?: string;
     children?: ReactNode;
     soundClick?: string;
     muteSounds?: boolean;
-    onCustomAction?: () => void; // NEW: Add custom action prop
+    onCustomAction?: () => void;
 }
-export const WindowCloseButton = ({ className, children, soundClick, muteSounds = false, onCustomAction }: WindowCloseButtonProps) => {
+
+export const WindowMinimizeButton = ({ className, children, soundClick, muteSounds = false, onCustomAction }: WindowMinimizeButtonProps) => {
     const windowId = useCurrentWindow();
-    const { closeWindow, defaultSounds, globalMute } = useWindowContext();
+    const { toggleMinimize, defaultSounds, globalMute } = useWindowContext();
 
-    const handleClick = () => {
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Prevents dragging when clicking the button
         playAudio(soundClick || defaultSounds.click, muteSounds || globalMute);
-        closeWindow(windowId);
+        toggleMinimize(windowId);
 
-        // NEW: Fire the custom action if it exists
         if (onCustomAction) {
             onCustomAction();
         }

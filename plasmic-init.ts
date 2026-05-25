@@ -14,6 +14,9 @@ import { MusicPlayerRoot, MusicControl, MusicSeekBar } from "./components/MusicP
 import {BassReactor} from "./components/BassReactor";
 import { MusicWindowSync } from "./components/MusicWindowSync";
 import { ImageCarousel} from "@/components/ImageCarousel";
+import { ReactiveBackground} from "@/components/ReactiveBackground";
+import { WindowMinimizeButton } from "@/components/WindowMinimizeButton";
+import { WindowActionBridge } from "@/components/WindowActionBridge";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -67,10 +70,22 @@ PLASMIC.registerComponent(TaskbarButton, {
       defaultValue: false,
       description: "When enabled, clicking this will close all other open windows."
     },
+    minimizeGroup: {
+      type: "string",
+      defaultValue: "",
+      displayName: "Minimize Group",
+      description: "Comma-separated IDs (e.g., 'overlay-*'). When clicked, these windows will be minimized instead of closed."
+    },
     children: { type: "slot" },
     soundClick: { type: "string" },
     soundHover: { type: "string" },
     muteSounds: { type: "boolean", defaultValue: false },
+    onCustomAction: {
+      type: "eventHandler",
+      argTypes: [],
+      displayName: "On Custom Action",
+      description: "Trigger additional actions (like Element Actions or State Updates) when clicked."
+    }
   },
 });
 
@@ -108,6 +123,37 @@ PLASMIC.registerComponent(Window, {
     soundDragStart: { type: "string" },
     soundDragEnd: { type: "string" },
     muteSounds: { type: "boolean", defaultValue: false, description: "Mute all interactions on this specific window" },
+
+    onOpen: {
+      type: "eventHandler",
+      argTypes: [],
+      displayName: "On Open",
+      description: "Triggered when the window state changes to open."
+    },
+    onClose: {
+      type: "eventHandler",
+      argTypes: [],
+      displayName: "On Close",
+      description: "Triggered when the window state changes to closed."
+    },
+    onFocus: {
+      type: "eventHandler",
+      argTypes: [],
+      displayName: "On Focus",
+      description: "Triggered when the window is brought to the front."
+    },
+    onUnfocus: {
+      type: "eventHandler",
+      argTypes: [],
+      displayName: "On Unfocus",
+      description: "Triggered when the window loses focus to another window."
+    },
+    onMinimize: {
+      type: "eventHandler",
+      argTypes: [],
+      displayName: "On Minimize",
+      description: "Triggered when the window state changes to minimized."
+    }
   },
 });
 
@@ -126,6 +172,12 @@ PLASMIC.registerComponent(WindowCloseButton, {
     children: { type: "slot" },
     soundClick: { type: "string" },
     muteSounds: { type: "boolean", defaultValue: false },
+    onCustomAction: {
+      type: "eventHandler",
+      argTypes: [],
+      displayName: "On Custom Action",
+      description: "Trigger additional actions (like State Updates) when closed."
+    }
   },
 });
 
@@ -397,6 +449,87 @@ PLASMIC.registerComponent(ImageCarousel, {
       defaultValue: 0,
       displayName: "Slide Gap (px)",
       description: "Spacing between each slide in pixels."
+    }
+  }
+});
+
+PLASMIC.registerComponent(ReactiveBackground, {
+  name: 'ReactiveBackground',
+  props: {
+    defaultImage: {
+      type: 'imageUrl',
+      description: "The default displayed image."
+    },
+    image: {
+      type: 'imageUrl',
+      description: "The displayed image."
+    },
+    transitionType: {
+      type: "choice",
+      options: ["wipe", "crossfade", "glitch", "zoom", "slide"],
+      defaultValue: "wipe",
+      description: "The visual effect used when transitioning to a new background."
+    }
+  },
+  refActions: {
+    updateBackground: {
+      description: "Trigger a transition to a new background image.",
+      argTypes: [
+        {
+          name: "url",
+          type: "imageUrl",
+          displayName: "Image URL"
+        }
+      ]
+    },
+    resetBackground: {
+      description: "Reset the background to its default image.",
+      argTypes: []
+    }
+  }
+});
+
+PLASMIC.registerComponent(WindowMinimizeButton, {
+  name: "WindowMinimizeButton",
+  providesData: true,
+  props: {
+    children: { type: "slot" },
+    soundClick: { type: "string" },
+    muteSounds: { type: "boolean", defaultValue: false },
+    onCustomAction: {
+      type: "eventHandler",
+      argTypes: [],
+      displayName: "On Custom Action",
+      description: "Trigger additional actions (like State Updates) when minimized."
+    }
+  },
+});
+
+PLASMIC.registerComponent(WindowActionBridge, {
+  name: "WindowActionBridge",
+  displayName: "Window System Actions",
+  description: "An invisible bridge. Place this on your page to trigger global window actions via 'Run element action'.",
+  props: {}, // No visual props needed
+  refActions: {
+    minimizeWindows: {
+      description: "Minimize windows matching a pattern (e.g., 'content-*')",
+      argTypes: [
+        {
+          name: "patterns",
+          type: "string",
+          displayName: "Target Window IDs",
+        }
+      ]
+    },
+    closeWindows: {
+      description: "Close windows matching a pattern (e.g., 'content-*')",
+      argTypes: [
+        {
+          name: "patterns",
+          type: "string",
+          displayName: "Target Window IDs",
+        }
+      ]
     }
   }
 });
