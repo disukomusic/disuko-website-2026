@@ -39,9 +39,9 @@ type WindowContextType = {
     setTaskbarHover: (id: string, isHovered: boolean) => void;
     registerWindow: (id: string, defaultOpen?: boolean) => void;
 
-    // NEW: Global wildcard minimizer
     minimizeWindowsByPattern: (patterns: string) => void;
     closeWindowsByPattern: (patterns: string) => void;
+    openWindowsByPattern: (patterns: string) => void;
 
     defaultSounds: DefaultSounds;
     globalMute: boolean;
@@ -127,7 +127,6 @@ export const WindowProvider = ({
         });
     }, []);
 
-    // NEW: Function to minimize windows globally using wildcards
     const minimizeWindowsByPattern = useCallback((patterns: string) => {
         if (!patterns) return;
 
@@ -163,6 +162,43 @@ export const WindowProvider = ({
             return hasChanges ? nextState : prev;
         });
     }, []);
+    
+    const openWindowsByPattern = useCallback((patterns: string) => {
+        if (!patterns) return;
+
+        setWindowStates((prev) => {
+            const rawPatterns = patterns.split(',').map(p => p.trim()).filter(Boolean);
+            const registeredWindows = Object.keys(prev);
+            const resolved: string[] = [];
+
+            rawPatterns.forEach(pattern => {
+                if (pattern.includes('*')) {
+                    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
+                    const matches = registeredWindows.filter(id => regex.test(id));
+                    resolved.push(...matches);
+                } else {
+                    if (registeredWindows.includes(pattern)) {
+                        resolved.push(pattern);
+                    }
+                }
+            });
+
+            let hasChanges = false;
+            const nextState = { ...prev };
+
+            // Apply open state only if the window is closed
+            Array.from(new Set(resolved)).forEach(id => {
+                const state = nextState[id];
+                if (state && !state.isOpen) {
+                    nextState[id] = { ...state, isOpen: true, isMinimized: false };
+                    hasChanges = true;
+                }
+            });
+
+            return hasChanges ? nextState : prev;
+        });
+    }, []);
+
     const closeWindowsByPattern = useCallback((patterns: string) => {
         if (!patterns) return;
 
@@ -199,10 +235,11 @@ export const WindowProvider = ({
         });
     }, []);
 
+
     return (
         <WindowContext.Provider value={{
             windowStates, windowOrder, toggleWindow, toggleMinimize, closeWindow, focusWindow,
-            setTaskbarHover, registerWindow, minimizeWindowsByPattern, closeWindowsByPattern,
+            setTaskbarHover, registerWindow, minimizeWindowsByPattern, closeWindowsByPattern, openWindowsByPattern,
             defaultSounds, globalMute, setGlobalMute
         }}>
             {children}
