@@ -530,6 +530,16 @@ PLASMIC.registerComponent(WindowActionBridge, {
           displayName: "Target Window IDs",
         }
       ]
+    },
+    openWindows: {
+      description: "Open windows matching a pattern (e.g., 'content-*')",
+      argTypes: [
+        {
+          name: "patterns",
+          type: "string",
+          displayName: "Target Window IDs",
+        }
+      ]
     }
   }
 });

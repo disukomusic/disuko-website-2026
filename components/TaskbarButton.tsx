@@ -39,7 +39,7 @@ export const TaskbarButton = ({
         return Array.from(new Set(resolved));
     }, [targetWindowIds, windowStates]);
 
-    // NEW: Resolve Minimize Group IDs using the same wildcard logic
+    // Resolve Minimize Group IDs using the same wildcard logic
     const minimizeIds = useMemo(() => {
         if (!minimizeGroup) return [];
         const rawPatterns = minimizeGroup.split(',').map(p => p.trim()).filter(Boolean);
@@ -59,40 +59,42 @@ export const TaskbarButton = ({
     }, [minimizeGroup, windowStates]);
 
     const isOpen = ids.some(id => windowStates[id]?.isOpen);
-    const isMinimized = ids.some(id => windowStates[id]?.isMinimized);
+    const needsRestore = ids.some(id => !windowStates[id]?.isOpen || windowStates[id]?.isMinimized);
 
     const handleClick = () => {
         playAudio(soundClick || defaultSounds.click, muteSounds || globalMute);
 
-        // Standard Solo mode: closes other windows entirely
-        if (soloMode && (!isOpen || isMinimized)) {
-            Object.keys(windowStates).forEach((id) => {
-                if (!ids.includes(id) && windowStates[id]?.isOpen) closeWindow(id);
-            });
-        }
+        if (needsRestore) {
+            // Standard Solo mode: closes other windows entirely
+            if (soloMode) {
+                Object.keys(windowStates).forEach((id) => {
+                    if (!ids.includes(id) && windowStates[id]?.isOpen) closeWindow(id);
+                });
+            }
 
-        // NEW: Minimize Group logic: soft solo mode
-        // Only trigger when we are opening/restoring the target windows
-        if (minimizeIds.length > 0 && (!isOpen || isMinimized)) {
-            minimizeIds.forEach((id) => {
+            // Minimize Group logic: soft solo mode
+            // Only trigger when we are opening/restoring the target windows
+            if (minimizeIds.length > 0) {
+                minimizeIds.forEach((id) => {
+                    const state = windowStates[id];
+                    // If it's open, not already minimized, and NOT part of the window we are currently opening
+                    if (state && state.isOpen && !state.isMinimized && !ids.includes(id)) {
+                        toggleMinimize(id);
+                    }
+                });
+            }
+
+            ids.forEach(id => {
                 const state = windowStates[id];
-                // If it's open, not already minimized, and NOT part of the window we are currently opening
-                if (state && state.isOpen && !state.isMinimized && !ids.includes(id)) {
+                if (!state) return;
+
+                if (!state.isOpen) {
+                    toggleWindow(id);
+                } else if (state.isMinimized) {
                     toggleMinimize(id);
                 }
             });
         }
-
-        ids.forEach(id => {
-            const state = windowStates[id];
-            if (!state) return;
-
-            if (state.isOpen && state.isMinimized) {
-                toggleMinimize(id);
-            } else {
-                toggleWindow(id);
-            }
-        });
 
         if (onCustomAction) {
             onCustomAction();

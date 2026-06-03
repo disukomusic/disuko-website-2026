@@ -8,7 +8,6 @@ export interface WindowProps {
     initialX?: string | number; initialY?: string | number; initialPosition?: string;
     soundOpen?: string; soundClose?: string; soundFocus?: string; soundDragStart?: string;
     soundDragEnd?: string; muteSounds?: boolean; alwaysAtBack?: boolean;
-    // NEW: Lifecycle event handlers
     onOpen?: () => void;
     onClose?: () => void;
     onFocus?: () => void;
