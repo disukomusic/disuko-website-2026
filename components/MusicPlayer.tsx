@@ -1,22 +1,38 @@
-﻿import React, { useState, useRef, useEffect, createContext, useContext, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useRef, useEffect, createContext, useContext, forwardRef, useImperativeHandle } from 'react';
 import { DataProvider } from '@plasmicapp/host';
 
-// 1. Create the React Context
 export const MusicContext = createContext<any>(null);
 
 export interface MusicPlayerRootRef {
     SetSong: (trackJson: any) => void;
 }
 
-export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function MusicPlayerRoot({ tracks, children, className }, ref) {
+export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function MusicPlayerRoot({ tracks, libraryUrl, children, className }, ref) {
+    const [fetchedTracks, setFetchedTracks] = useState<any[]>([]);
     const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const audioRef = useRef<HTMLAudioElement>(null);
 
-    // Safely fallback if no tracks are provided
-    const normalizedTracks = Array.isArray(tracks) ? tracks : [];
+    // Fetch the tracks from Cloudflare Worker / R2 Manifest
+    useEffect(() => {
+        if (!libraryUrl) return;
+
+        fetch(libraryUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (Array.isArray(data)) {
+                    setFetchedTracks(data);
+                }
+            })
+            .catch(err => console.error("Failed to fetch library from R2:", err));
+    }, [libraryUrl]);
+
+    // Combine hardcoded Plasmic tracks with the fetched cloud tracks
+    const baseTracks = Array.isArray(tracks) ? tracks : [];
+    const normalizedTracks = [...baseTracks, ...fetchedTracks];
+
     const currentTrack = normalizedTracks.length > 0 ? normalizedTracks[currentTrackIndex] : {};
 
     // Keep index valid if the tracks array shrinks or changes
@@ -45,7 +61,7 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
             }
         }
     }), [normalizedTracks]);
-
+    
     // Audio Event Handlers
     const onTimeUpdate = () => setCurrentTime(audioRef.current?.currentTime || 0);
     const onDurationChange = () => setDuration(audioRef.current?.duration || 0);

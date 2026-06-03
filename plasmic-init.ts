@@ -283,6 +283,12 @@ PLASMIC.registerComponent(MusicPlayerRoot, {
   displayName: 'Music Player (Root)',
   providesData: true,
   props: {
+    libraryUrl: {
+      type: 'string',
+      displayName: 'Cloud Library URL',
+      description: 'URL to a JSON endpoint (like a Cloudflare Worker) that returns an array of tracks from your R2 bucket.',
+      defaultValue: ''
+    },
     tracks: {
       type: 'array',
       defaultValue: [
