@@ -1,10 +1,14 @@
-﻿import React, { useState, useRef, useEffect, createContext, useContext } from 'react';
+﻿import React, { useState, useRef, useEffect, createContext, useContext, forwardRef, useImperativeHandle } from 'react';
 import { DataProvider } from '@plasmicapp/host';
 
 // 1. Create the React Context
 export const MusicContext = createContext<any>(null);
 
-export function MusicPlayerRoot({ tracks, children, className }: any) {
+export interface MusicPlayerRootRef {
+    SetSong: (trackJson: any) => void;
+}
+
+export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function MusicPlayerRoot({ tracks, children, className }, ref) {
     const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
@@ -12,7 +16,35 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
     const audioRef = useRef<HTMLAudioElement>(null);
 
     // Safely fallback if no tracks are provided
-    const currentTrack = (tracks && tracks.length > 0) ? tracks[currentTrackIndex] : {};
+    const normalizedTracks = Array.isArray(tracks) ? tracks : [];
+    const currentTrack = normalizedTracks.length > 0 ? normalizedTracks[currentTrackIndex] : {};
+
+    // Keep index valid if the tracks array shrinks or changes
+    useEffect(() => {
+        if (!normalizedTracks.length) {
+            setCurrentTrackIndex(0);
+            return;
+        }
+        if (currentTrackIndex >= normalizedTracks.length) {
+            setCurrentTrackIndex(normalizedTracks.length - 1);
+        }
+    }, [normalizedTracks.length, currentTrackIndex]);
+
+    useImperativeHandle(ref, () => ({
+        SetSong: (trackJson: any) => {
+            if (!Array.isArray(normalizedTracks) || !normalizedTracks.length || !trackJson) return;
+
+            const targetIndex = normalizedTracks.findIndex((track: any) => {
+                if (track === trackJson) return true;
+                if (trackJson.url && track?.url === trackJson.url) return true;
+                return track?.name === trackJson.name && track?.artist === trackJson.artist;
+            });
+
+            if (targetIndex >= 0) {
+                setCurrentTrackIndex(targetIndex);
+            }
+        }
+    }), [normalizedTracks]);
 
     // Audio Event Handlers
     const onTimeUpdate = () => setCurrentTime(audioRef.current?.currentTime || 0);
@@ -24,8 +56,8 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
     const pause = () => { audioRef.current?.pause(); setIsPlaying(false); };
     const togglePlay = () => isPlaying ? pause() : play();
     const stop = () => { pause(); if (audioRef.current) audioRef.current.currentTime = 0; };
-    const nextTrack = () => setCurrentTrackIndex((i) => (i + 1) % (tracks?.length || 1));
-    const prevTrack = () => setCurrentTrackIndex((i) => (i - 1 + (tracks?.length || 1)) % (tracks?.length || 1));
+    const nextTrack = () => setCurrentTrackIndex((i) => (i + 1) % (normalizedTracks.length || 1));
+    const prevTrack = () => setCurrentTrackIndex((i) => (i - 1 + (normalizedTracks.length || 1)) % (normalizedTracks.length || 1));
     const seek = (seconds: number) => { if (audioRef.current) audioRef.current.currentTime += seconds; };
 
     // Function to jump to a specific time
@@ -55,6 +87,10 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
 
     // 2. Prepare Data for Plasmic Studio
     const plasmicData = {
+        tracks: normalizedTracks,
+        currentTrack,
+        currentTrackIndex,
+        trackCount: normalizedTracks.length,
         trackName: currentTrack.name || "No Track Selected",
         artist: currentTrack.artist || "Unknown Artist",
         artwork: currentTrack.artwork || "",
@@ -62,7 +98,6 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
         durationFormatted: formatTime(duration),
         timeRemainingFormatted: formatTime(timeRemaining),
         isPlaying,
-        // NEW: Expose raw progress percentage (0-100) for custom UI styling if needed
         progressPercentage: duration > 0 ? (currentTime / duration) * 100 : 0
     };
 
@@ -83,7 +118,9 @@ export function MusicPlayerRoot({ tracks, children, className }: any) {
             </DataProvider>
         </MusicContext.Provider>
     );
-}
+});
+
+MusicPlayerRoot.displayName = 'MusicPlayerRoot';
 
 export function MusicControl({ action, children, className }: any) {
     const context = useContext(MusicContext);

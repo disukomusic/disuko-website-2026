@@ -313,6 +313,18 @@ PLASMIC.registerComponent(MusicPlayerRoot, {
         }
       ]
     }
+  },
+  refActions: {
+    SetSong: {
+      description: 'Set the current song by passing a track JSON object.',
+      argTypes: [
+        {
+          name: 'trackJson',
+          type: 'object',
+          displayName: 'Track JSON'
+        }
+      ]
+    }
   }
 });
 
