@@ -9,14 +9,14 @@ export interface WindowActionBridgeProps {
 export interface WindowActionRefs {
     minimizeWindows: (patterns: string) => void;
     closeWindows: (patterns: string) => void;
+    openWindows: (patterns: string) => void;
 
 }
 
 export const WindowActionBridge = forwardRef<WindowActionRefs, WindowActionBridgeProps>(
     (props, ref) => {
         // Grab  global context functions
-        const { minimizeWindowsByPattern } = useWindowStore();
-        const { closeWindowsByPattern } = useWindowStore();
+        const { minimizeWindowsByPattern, closeWindowsByPattern, openWindowsByPattern } = useWindowStore();
 
         // Wire them up to the component's ref so Plasmic can call them
         useImperativeHandle(ref, () => ({
@@ -28,6 +28,12 @@ export const WindowActionBridge = forwardRef<WindowActionRefs, WindowActionBridg
             closeWindows: (patterns: string) => {
                 if (closeWindowsByPattern) {
                     closeWindowsByPattern(patterns);
+                }
+            }
+            ,
+            openWindows: (patterns: string) => {
+                if (openWindowsByPattern) {
+                    openWindowsByPattern(patterns);
                 }
             }
         }));
