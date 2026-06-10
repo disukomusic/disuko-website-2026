@@ -1,256 +1,222 @@
-﻿import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext } from 'react';
+import { create } from 'zustand';
 
 // --- Audio Utility ---
 const audioDebounceMap = new Map<string, number>();
 
 export const playAudio = (url?: string, muted?: boolean) => {
-    if (!url || muted) return;
-    const now = Date.now();
-    const lastPlayed = audioDebounceMap.get(url) || 0;
-    if (now - lastPlayed < 50) return;
-    audioDebounceMap.set(url, now);
-    try {
-        const audio = new Audio(url);
-        audio.play().catch(e => console.warn("Audio play blocked/failed:", e));
-    } catch (e) {
-        console.error("Invalid audio playback", e);
-    }
+  if (!url || muted) return;
+  const now = Date.now();
+  const lastPlayed = audioDebounceMap.get(url) || 0;
+  if (now - lastPlayed < 50) return;
+  audioDebounceMap.set(url, now);
+  try {
+    const audio = new Audio(url);
+    audio.play().catch((e) => console.warn('Audio play blocked/failed:', e));
+  } catch (e) {
+    console.error('Invalid audio playback', e);
+  }
 };
 
 export type DefaultSounds = {
-    open?: string; close?: string; focus?: string; dragStart?: string;
-    dragEnd?: string; click?: string; taskbarHover?: string;
+  open?: string;
+  close?: string;
+  focus?: string;
+  dragStart?: string;
+  dragEnd?: string;
+  click?: string;
+  taskbarHover?: string;
 };
 
-// --- GLOBAL CONTEXT ---
 type WindowState = {
-    isOpen: boolean;
-    isTaskbarHovered: boolean;
-    isMinimized: boolean;
+  isOpen: boolean;
+  isTaskbarHovered: boolean;
+  isMinimized: boolean;
 };
 
-type WindowContextType = {
-    windowStates: Record<string, WindowState>;
-    windowOrder: string[];
-    toggleWindow: (id: string) => void;
-    toggleMinimize: (id: string) => void;
-    closeWindow: (id: string) => void;
-    focusWindow: (id: string) => void;
-    setTaskbarHover: (id: string, isHovered: boolean) => void;
-    registerWindow: (id: string, defaultOpen?: boolean) => void;
+// --- ZUSTAND STORE ---
+interface WindowStore {
+  windowStates: Record<string, WindowState>;
+  windowOrder: string[];
+  globalMute: boolean;
+  defaultSounds: DefaultSounds;
 
-    minimizeWindowsByPattern: (patterns: string) => void;
-    closeWindowsByPattern: (patterns: string) => void;
-    openWindowsByPattern: (patterns: string) => void;
+  // Actions
+  setGlobalMute: (mute: boolean) => void;
+  setDefaultSounds: (sounds: DefaultSounds) => void;
+  registerWindow: (id: string, defaultOpen?: boolean) => void;
+  focusWindow: (id: string) => void;
+  toggleWindow: (id: string) => void;
+  toggleMinimize: (id: string) => void;
+  closeWindow: (id: string) => void;
+  setTaskbarHover: (id: string, isHovered: boolean) => void;
 
-    defaultSounds: DefaultSounds;
-    globalMute: boolean;
-    setGlobalMute: (mute: boolean) => void;
-};
-
-const WindowContext = createContext<WindowContextType | null>(null);
-
-export const useWindowContext = () => {
-    const ctx = useContext(WindowContext);
-    if (!ctx) throw new Error('Must be used within a WindowProvider');
-    return ctx;
-};
-
-interface WindowProviderProps {
-    children: ReactNode;
-    initialGlobalMute?: boolean;
-    defaultSoundOpen?: string; defaultSoundClose?: string; defaultSoundFocus?: string;
-    defaultSoundDragStart?: string; defaultSoundDragEnd?: string;
-    defaultSoundClick?: string; defaultSoundTaskbarHover?: string;
+  minimizeWindowsByPattern: (patterns: string) => void;
+  closeWindowsByPattern: (patterns: string) => void;
+  openWindowsByPattern: (patterns: string) => void;
 }
 
-export const WindowProvider = ({
-                                   children, initialGlobalMute = false, defaultSoundOpen, defaultSoundClose,
-                                   defaultSoundFocus, defaultSoundDragStart, defaultSoundDragEnd, defaultSoundClick, defaultSoundTaskbarHover
-                               }: WindowProviderProps) => {
+export const useWindowStore = create<WindowStore>((set, get) => ({
+  windowStates: {},
+  windowOrder: [],
+  globalMute: false,
+  defaultSounds: {},
 
-    const defaultSounds: DefaultSounds = {
-        open: defaultSoundOpen, close: defaultSoundClose, focus: defaultSoundFocus,
-        dragStart: defaultSoundDragStart, dragEnd: defaultSoundDragEnd,
-        click: defaultSoundClick, taskbarHover: defaultSoundTaskbarHover,
-    };
-    const [windowStates, setWindowStates] = useState<Record<string, WindowState>>({});
-    const [windowOrder, setWindowOrder] = useState<string[]>([]);
-    const [globalMute, setGlobalMute] = useState(initialGlobalMute);
+  setGlobalMute: (mute) => set({ globalMute: mute }),
+  setDefaultSounds: (sounds) => set({ defaultSounds: sounds }),
 
-    const registerWindow = useCallback((id: string, defaultOpen = false) => {
-        setWindowStates((prev) => {
-            if (prev[id]) return prev;
-            return { ...prev, [id]: { isOpen: defaultOpen, isTaskbarHovered: false, isMinimized: false } };
-        });
-        setWindowOrder((prev) => (prev.includes(id) ? prev : [...prev, id]));
-    }, []);
+  registerWindow: (id, defaultOpen = false) =>
+    set((state) => {
+      if (state.windowStates[id]) return state; // already registered
+      return {
+        windowStates: {
+          ...state.windowStates,
+          [id]: { isOpen: !!defaultOpen, isTaskbarHovered: false, isMinimized: false },
+        },
+        windowOrder: state.windowOrder.includes(id) ? state.windowOrder : [...state.windowOrder, id],
+      };
+    }),
 
-    const focusWindow = useCallback((id: string) => {
-        setWindowOrder((prev) => {
-            const filtered = prev.filter((wId) => wId !== id);
-            return [...filtered, id];
-        });
-    }, []);
+  focusWindow: (id) =>
+    set((state) => {
+      const filtered = state.windowOrder.filter((wId) => wId !== id);
+      return { windowOrder: [...filtered, id] };
+    }),
 
-    const toggleWindow = useCallback((id: string) => {
-        setWindowStates((prev) => {
-            const state = prev[id];
-            if (!state) return prev;
-            if (!state.isOpen) focusWindow(id);
-            return { ...prev, [id]: { ...state, isOpen: !state.isOpen, isMinimized: false } };
-        });
-    }, [focusWindow]);
+  toggleWindow: (id) =>
+    set((state) => {
+      const winState = state.windowStates[id];
+      if (!winState) return state;
+      // If we are opening it, focus it
+      if (!winState.isOpen) {
+        // use get() to call focusWindow (safe to call synchronously)
+        get().focusWindow(id);
+      }
+      return {
+        windowStates: { ...state.windowStates, [id]: { ...winState, isOpen: !winState.isOpen, isMinimized: false } },
+      };
+    }),
 
-    const toggleMinimize = useCallback((id: string) => {
-        setWindowStates((prev) => {
-            const state = prev[id];
-            if (!state) return prev;
-            if (!state.isMinimized) focusWindow(id);
-            return { ...prev, [id]: { ...state, isMinimized: !state.isMinimized } };
-        });
-    }, [focusWindow]);
+  toggleMinimize: (id) => {
+    const state = get().windowStates[id];
+    if (!state) return;
+    if (!state.isMinimized) {
+      // focusing if un-minimizing
+      get().focusWindow(id);
+    }
+    set((store) => ({ windowStates: { ...store.windowStates, [id]: { ...state, isMinimized: !state.isMinimized } } }));
+  },
 
-    const closeWindow = useCallback((id: string) => {
-        setWindowStates((prev) => {
-            const state = prev[id];
-            if (!state) return prev;
-            return { ...prev, [id]: { ...state, isOpen: false, isMinimized: false } };
-        });
-    }, []);
+  closeWindow: (id) =>
+    set((state) => {
+      const winState = state.windowStates[id];
+      if (!winState) return state;
+      return { windowStates: { ...state.windowStates, [id]: { ...winState, isOpen: false, isMinimized: false } } };
+    }),
 
-    const setTaskbarHover = useCallback((id: string, isHovered: boolean) => {
-        setWindowStates((prev) => {
-            const state = prev[id];
-            if (!state) return prev;
-            return { ...prev, [id]: { ...state, isTaskbarHovered: isHovered } };
-        });
-    }, []);
+  setTaskbarHover: (id, isHovered) =>
+    set((state) => {
+      const winState = state.windowStates[id];
+      if (!winState) return state;
+      return { windowStates: { ...state.windowStates, [id]: { ...winState, isTaskbarHovered: isHovered } } };
+    }),
 
-    const minimizeWindowsByPattern = useCallback((patterns: string) => {
-        if (!patterns) return;
+  minimizeWindowsByPattern: (patterns) =>
+    set((state) => {
+      if (!patterns) return state;
+      const rawPatterns = patterns.split(',').map((p) => p.trim()).filter(Boolean);
+      const registeredWindows = Object.keys(state.windowStates);
+      const resolved: string[] = [];
 
-        setWindowStates((prev) => {
-            const rawPatterns = patterns.split(',').map(p => p.trim()).filter(Boolean);
-            const registeredWindows = Object.keys(prev);
-            const resolved: string[] = [];
+      rawPatterns.forEach((pattern) => {
+        if (pattern.includes('*')) {
+          const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
+          resolved.push(...registeredWindows.filter((id) => regex.test(id)));
+        } else if (registeredWindows.includes(pattern)) {
+          resolved.push(pattern);
+        }
+      });
 
-            rawPatterns.forEach(pattern => {
-                if (pattern.includes('*')) {
-                    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
-                    const matches = registeredWindows.filter(id => regex.test(id));
-                    resolved.push(...matches);
-                } else {
-                    if (registeredWindows.includes(pattern)) {
-                        resolved.push(pattern);
-                    }
-                }
-            });
+      let hasChanges = false;
+      const nextState = { ...state.windowStates };
 
-            let hasChanges = false;
-            const nextState = { ...prev };
+      Array.from(new Set(resolved)).forEach((id) => {
+        const winState = nextState[id];
+        if (winState && winState.isOpen && !winState.isMinimized) {
+          nextState[id] = { ...winState, isMinimized: true };
+          hasChanges = true;
+        }
+      });
 
-            // Apply minimize state only if the window is open and not already minimized
-            Array.from(new Set(resolved)).forEach(id => {
-                const state = nextState[id];
-                if (state && state.isOpen && !state.isMinimized) {
-                    nextState[id] = { ...state, isMinimized: true };
-                    hasChanges = true;
-                }
-            });
+      return hasChanges ? { windowStates: nextState } : state;
+    }),
 
-            return hasChanges ? nextState : prev;
-        });
-    }, []);
-    
-    const openWindowsByPattern = useCallback((patterns: string) => {
-        if (!patterns) return;
+  openWindowsByPattern: (patterns) =>
+    set((state) => {
+      if (!patterns) return state;
+      const rawPatterns = patterns.split(',').map((p) => p.trim()).filter(Boolean);
+      const registeredWindows = Object.keys(state.windowStates);
+      const resolved: string[] = [];
 
-        setWindowStates((prev) => {
-            const rawPatterns = patterns.split(',').map(p => p.trim()).filter(Boolean);
-            const registeredWindows = Object.keys(prev);
-            const resolved: string[] = [];
+      rawPatterns.forEach((pattern) => {
+        if (pattern.includes('*')) {
+          const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
+          resolved.push(...registeredWindows.filter((id) => regex.test(id)));
+        } else if (registeredWindows.includes(pattern)) {
+          resolved.push(pattern);
+        }
+      });
 
-            rawPatterns.forEach(pattern => {
-                if (pattern.includes('*')) {
-                    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
-                    const matches = registeredWindows.filter(id => regex.test(id));
-                    resolved.push(...matches);
-                } else {
-                    if (registeredWindows.includes(pattern)) {
-                        resolved.push(pattern);
-                    }
-                }
-            });
+      let hasChanges = false;
+      const nextState = { ...state.windowStates };
 
-            let hasChanges = false;
-            const nextState = { ...prev };
+      Array.from(new Set(resolved)).forEach((id) => {
+        const winState = nextState[id];
+        if (winState && !winState.isOpen) {
+          nextState[id] = { ...winState, isOpen: true, isMinimized: false };
+          hasChanges = true;
+        }
+      });
 
-            // Apply open state only if the window is closed
-            Array.from(new Set(resolved)).forEach(id => {
-                const state = nextState[id];
-                if (state && !state.isOpen) {
-                    nextState[id] = { ...state, isOpen: true, isMinimized: false };
-                    hasChanges = true;
-                }
-            });
+      return hasChanges ? { windowStates: nextState } : state;
+    }),
 
-            return hasChanges ? nextState : prev;
-        });
-    }, []);
+  closeWindowsByPattern: (patterns) =>
+    set((state) => {
+      if (!patterns) return state;
+      const rawPatterns = patterns.split(',').map((p) => p.trim()).filter(Boolean);
+      const registeredWindows = Object.keys(state.windowStates);
+      const resolved: string[] = [];
 
-    const closeWindowsByPattern = useCallback((patterns: string) => {
-        if (!patterns) return;
+      rawPatterns.forEach((pattern) => {
+        if (pattern.includes('*')) {
+          const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
+          resolved.push(...registeredWindows.filter((id) => regex.test(id)));
+        } else if (registeredWindows.includes(pattern)) {
+          resolved.push(pattern);
+        }
+      });
 
-        setWindowStates((prev) => {
-            const rawPatterns = patterns.split(',').map(p => p.trim()).filter(Boolean);
-            const registeredWindows = Object.keys(prev);
-            const resolved: string[] = [];
+      let hasChanges = false;
+      const nextState = { ...state.windowStates };
 
-            rawPatterns.forEach(pattern => {
-                if (pattern.includes('*')) {
-                    const regex = new RegExp(`^${pattern.replace(/\*/g, '.*')}$`);
-                    const matches = registeredWindows.filter(id => regex.test(id));
-                    resolved.push(...matches);
-                } else {
-                    if (registeredWindows.includes(pattern)) {
-                        resolved.push(pattern);
-                    }
-                }
-            });
+      Array.from(new Set(resolved)).forEach((id) => {
+        const winState = nextState[id];
+        if (winState && winState.isOpen) {
+          nextState[id] = { ...winState, isOpen: false, isMinimized: false };
+          hasChanges = true;
+        }
+      });
 
-            let hasChanges = false;
-            const nextState = { ...prev };
+      return hasChanges ? { windowStates: nextState } : state;
+    }),
+}));
 
-            // Apply close state only if the window is open
-            Array.from(new Set(resolved)).forEach(id => {
-                const state = nextState[id];
-                if (state && state.isOpen) {
-                    nextState[id] = { ...state, isOpen: false, isMinimized: false };
-                    hasChanges = true;
-                }
-            });
-
-            return hasChanges ? nextState : prev;
-        });
-    }, []);
-
-
-    return (
-        <WindowContext.Provider value={{
-            windowStates, windowOrder, toggleWindow, toggleMinimize, closeWindow, focusWindow,
-            setTaskbarHover, registerWindow, minimizeWindowsByPattern, closeWindowsByPattern, openWindowsByPattern,
-            defaultSounds, globalMute, setGlobalMute
-        }}>
-            {children}
-        </WindowContext.Provider>
-    );
-};
-
+// --- LOCAL CONTEXT (Required for Plasmic Children to know their Window ID) ---
 export const CurrentWindowContext = createContext<string | null>(null);
 
 export const useCurrentWindow = () => {
-    const ctx = useContext(CurrentWindowContext);
-    if (!ctx) throw new Error('Must be used within a Window component');
-    return ctx;
+  const ctx = useContext(CurrentWindowContext);
+  if (!ctx) throw new Error('Must be used within a Window component');
+  return ctx;
 };

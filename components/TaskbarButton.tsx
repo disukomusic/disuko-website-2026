@@ -1,5 +1,5 @@
 ﻿import React, { ReactNode, useMemo } from "react";
-import { useWindowContext, playAudio } from "@/components/WindowSystem";
+import { useWindowStore, playAudio } from "@/components/WindowSystem";
 
 export interface TaskbarButtonProps {
     className?: string;
@@ -19,7 +19,7 @@ export const TaskbarButton = ({
                                   soundClick, soundHover, muteSounds = false, onCustomAction
                               }: TaskbarButtonProps) => {
 
-    const { toggleWindow, toggleMinimize, closeWindow, setTaskbarHover, windowStates, defaultSounds, globalMute } = useWindowContext();
+    const { toggleWindow, toggleMinimize, closeWindow, setTaskbarHover, windowStates, defaultSounds, globalMute } = useWindowStore();
 
     // Resolve target IDs
     const ids = useMemo(() => {

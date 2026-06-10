@@ -1,5 +1,5 @@
 ﻿import React, { ReactNode, useRef, useEffect, useLayoutEffect, useState, createContext } from "react";
-import { CurrentWindowContext, useWindowContext, playAudio } from "@/components/WindowSystem";
+import { CurrentWindowContext, useWindowStore, playAudio } from "@/components/WindowSystem";
 import { useDesktopBounds } from "./Desktop";
 import { motion, useMotionValue, useTransform, useVelocity, useSpring, useDragControls, animate as framerAnimate } from "framer-motion";
 
@@ -20,9 +20,27 @@ export const WindowDragContext = createContext<any>(null);
 export const Window = ({
                            className, children, windowId, defaultOpen = false, initialX = 0, initialY = 0, initialPosition,
                            soundOpen, soundClose, soundFocus, soundDragStart, soundDragEnd, muteSounds = false, alwaysAtBack = false,
-                           onOpen, onClose, onFocus, onUnfocus, onMinimize // NEW
+                           onOpen, onClose, onFocus, onUnfocus, onMinimize
                        }: WindowProps) => {
-    const { windowStates, windowOrder, focusWindow, registerWindow, toggleMinimize, defaultSounds, globalMute } = useWindowContext();
+
+    // 1. Grab ACTIONS from the store
+    const { focusWindow, registerWindow, toggleMinimize } = useWindowStore();
+    const defaultSounds = useWindowStore(state => state.defaultSounds);
+    const globalMute = useWindowStore(state => state.globalMute);
+
+    // 2. Grab SPECIFIC STATE
+    const state = useWindowStore(s => s.windowStates[windowId]);
+    const isFocused = useWindowStore(s => s.windowOrder[s.windowOrder.length - 1] === windowId);
+    const windowOrderIndex = useWindowStore(s => s.windowOrder.indexOf(windowId));
+
+    // Calculate minimized index for the stack position
+    const minimizedIndex = useWindowStore(s => {
+        const minimized = Object.entries(s.windowStates).filter(([_, st]) => st.isOpen && st.isMinimized).map(([id]) => id);
+        return minimized.indexOf(windowId);
+    });
+
+    const isMinimized = state?.isMinimized || false;
+
     const windowRef = useRef<HTMLDivElement>(null);
     const dragControls = useDragControls();
     const desktopBoundsRef = useDesktopBounds();
@@ -53,11 +71,6 @@ export const Window = ({
         }
     }
 
-    const state = windowStates[windowId];
-    const isMinimized = state?.isMinimized || false;
-    // MOVED: Calculate focus early so we can track it in a useEffect
-    const isFocused = windowOrder[windowOrder.length - 1] === windowId;
-
     const prevIsOpen = useRef(defaultOpen);
     const prevIsFocused = useRef(false);
     const prevIsMinimized = useRef(false);
@@ -74,10 +87,10 @@ export const Window = ({
             if (state.isOpen) {
                 setIsRendered(true);
                 playAudio(soundOpen || defaultSounds.open, isMuted);
-                if (onOpen) onOpen(); // TRIGGER ON OPEN
+                if (onOpen) onOpen();
             } else {
                 playAudio(soundClose || defaultSounds.close, isMuted);
-                if (onClose) onClose(); // TRIGGER ON CLOSE
+                if (onClose) onClose();
             }
             prevIsOpen.current = state.isOpen;
         }
@@ -87,9 +100,9 @@ export const Window = ({
     useEffect(() => {
         if (isFocused !== prevIsFocused.current) {
             if (isFocused) {
-                if (onFocus) onFocus(); // TRIGGER ON FOCUS
+                if (onFocus) onFocus();
             } else {
-                if (onUnfocus) onUnfocus(); // TRIGGER ON UNFOCUS
+                if (onUnfocus) onUnfocus();
             }
             prevIsFocused.current = isFocused;
         }
@@ -100,7 +113,7 @@ export const Window = ({
         if (!state) return;
         if (state.isMinimized !== prevIsMinimized.current) {
             if (state.isMinimized) {
-                if (onMinimize) onMinimize(); // TRIGGER ON MINIMIZE
+                if (onMinimize) onMinimize();
             }
             prevIsMinimized.current = state.isMinimized;
         }
@@ -117,10 +130,6 @@ export const Window = ({
     const rotateRaw = useTransform(xVelocity, [-800, 800], [-8, 8]);
     const rotate = useSpring(rotateRaw, { stiffness: 150, damping: 15 });
 
-    // Calculate Stack Position dynamically based on how many windows are minimized
-    const openMinimizedWindows = Object.entries(windowStates).filter(([_, s]) => s.isOpen && s.isMinimized).map(([id]) => id);
-    const minimizedIndex = openMinimizedWindows.indexOf(windowId);
-
     const savedPos = useRef({ x: 0, y: 0 });
     const wasMinimized = useRef(false);
 
@@ -130,8 +139,6 @@ export const Window = ({
                 savedPos.current = { x: x.get(), y: y.get() };
                 wasMinimized.current = true;
             }
-            // Because this is useLayoutEffect, these snap to 0 synchronously
-            // before the browser paints, eliminating the 1-frame flash.
             x.set(0);
             y.set(0);
         } else {
@@ -165,7 +172,7 @@ export const Window = ({
 
     if (!state) return null;
 
-    const calculatedZIndex = alwaysAtBack ? 1 : Math.max(10, windowOrder.indexOf(windowId) + 10);
+    const calculatedZIndex = alwaysAtBack ? 1 : Math.max(10, windowOrderIndex + 10);
 
     return (
         <CurrentWindowContext.Provider value={windowId}>
@@ -192,12 +199,16 @@ export const Window = ({
                     transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.8 }}
                     onAnimationComplete={() => {
                         if (state.isOpen) {
-                            setOrigin({ x: "50%", y: "24px" });
-                            setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
+                            // Fix: Check if origin is already set to prevent infinite looping
+                            if (origin.x !== "50%" || origin.y !== "24px") {
+                                setOrigin({ x: "50%", y: "24px" });
+                                setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
+                            }
                         } else {
                             setIsRendered(false);
                         }
                     }}
+                    
                     style={{
                         x, y, rotate,
                         transformOrigin: `${origin.x} ${origin.y}`,
