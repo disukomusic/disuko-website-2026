@@ -9,7 +9,6 @@ import {
 } from "@/components";
 import { ModelViewer } from "./components/ModelViewer";
 import { MultiImageSlider } from "./components/MultiImageSlider";
-import { WindowProvider } from "@/components/WindowSystem";
 import { MusicPlayerRoot, MusicControl, MusicSeekBar } from "./components/MusicPlayer";
 import {BassReactor} from "./components/BassReactor";
 import { MusicWindowSync } from "./components/MusicWindowSync";
@@ -17,6 +16,7 @@ import { ImageCarousel} from "@/components/ImageCarousel";
 import { ReactiveBackground} from "@/components/ReactiveBackground";
 import { WindowMinimizeButton } from "@/components/WindowMinimizeButton";
 import { WindowActionBridge } from "@/components/WindowActionBridge";
+import { WindowConfigurator } from "@/components/WindowConfigurator";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -28,24 +28,6 @@ export const PLASMIC = initPlasmicLoader({
   // Fetches the latest revisions, whether or not they were unpublished!
   // Disable for production to ensure you render only published changes.
   preview: true,
-});
-
-PLASMIC.registerGlobalContext(WindowProvider, {
-  name: "WindowSystemProvider",
-  props: {
-    initialGlobalMute: {
-      type: "boolean",
-      defaultValue: false,
-      displayName: "Mute All Sounds (Default)"
-    },
-    defaultSoundOpen: { type: "string", displayName: "Sound: Open" },
-    defaultSoundClose: { type: "string", displayName: "Sound: Close" },
-    defaultSoundFocus: { type: "string", displayName: "Sound: Focus" },
-    defaultSoundDragStart: { type: "string", displayName: "Sound: Drag Start" },
-    defaultSoundDragEnd: { type: "string", displayName: "Sound: Drag End" },
-    defaultSoundClick: { type: "string", displayName: "Sound: Button Click" },
-    defaultSoundTaskbarHover: { type: "string", displayName: "Sound: Taskbar Hover" }
-  }
 });
 
 PLASMIC.registerComponent(TaskbarContainer, {
@@ -559,5 +541,24 @@ PLASMIC.registerComponent(WindowActionBridge, {
         }
       ]
     }
+  }
+});
+
+PLASMIC.registerComponent(WindowConfigurator, {
+  name: "Window Configurator",
+  displayName: "Window Audio Config",
+  props: {
+    initialGlobalMute: {
+      type: "boolean",
+      defaultValue: false,
+      displayName: "Mute All Sounds"
+    },
+    defaultSoundOpen: { type: "string", displayName: "Sound: Open" },
+    defaultSoundClose: { type: "string", displayName: "Sound: Close" },
+    defaultSoundFocus: { type: "string", displayName: "Sound: Focus" },
+    defaultSoundDragStart: { type: "string", displayName: "Sound: Drag Start" },
+    defaultSoundDragEnd: { type: "string", displayName: "Sound: Drag End" },
+    defaultSoundClick: { type: "string", displayName: "Sound: Button Click" },
+    defaultSoundTaskbarHover: { type: "string", displayName: "Sound: Taskbar Hover" }
   }
 });

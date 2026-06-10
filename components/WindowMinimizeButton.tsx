@@ -1,6 +1,5 @@
 ﻿import React, {ReactNode} from "react";
-import { useCurrentWindow, useWindowContext, playAudio } from "@/components/WindowSystem";
-
+import { useCurrentWindow, useWindowStore, playAudio } from "@/components/WindowSystem";
 export interface WindowMinimizeButtonProps {
     className?: string;
     children?: ReactNode;
@@ -11,7 +10,7 @@ export interface WindowMinimizeButtonProps {
 
 export const WindowMinimizeButton = ({ className, children, soundClick, muteSounds = false, onCustomAction }: WindowMinimizeButtonProps) => {
     const windowId = useCurrentWindow();
-    const { toggleMinimize, defaultSounds, globalMute } = useWindowContext();
+    const { toggleMinimize, defaultSounds, globalMute } = useWindowStore();
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevents dragging when clicking the button

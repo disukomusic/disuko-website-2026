@@ -1,6 +1,6 @@
 ﻿import React, { useEffect, useContext, useRef } from 'react';
 import { MusicContext } from './MusicPlayer';
-import { useWindowContext } from './WindowSystem';
+import { useWindowStore } from './WindowSystem';
 
 export interface MusicWindowSyncProps {
     className?: string;
@@ -10,7 +10,7 @@ export interface MusicWindowSyncProps {
 
 export function MusicWindowSync({ className, windowId, fadeDuration = 500 }: MusicWindowSyncProps) {
     const musicCtx = useContext(MusicContext);
-    const windowCtx = useWindowContext();
+    const windowCtx = useWindowStore();
     const fadeIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     // Fail gracefully if contexts are missing

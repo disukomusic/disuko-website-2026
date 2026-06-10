@@ -1,6 +1,5 @@
 ﻿import React, {ReactNode} from "react";
-import { useCurrentWindow, useWindowContext, playAudio } from "@/components/WindowSystem";
-
+import { useCurrentWindow, useWindowStore, playAudio } from "@/components/WindowSystem";
 export interface WindowCloseButtonProps {
     className?: string;
     children?: ReactNode;
@@ -10,8 +9,8 @@ export interface WindowCloseButtonProps {
 }
 export const WindowCloseButton = ({ className, children, soundClick, muteSounds = false, onCustomAction }: WindowCloseButtonProps) => {
     const windowId = useCurrentWindow();
-    const { closeWindow, defaultSounds, globalMute } = useWindowContext();
-
+    const { closeWindow, defaultSounds, globalMute } = useWindowStore();
+    
     const handleClick = () => {
         playAudio(soundClick || defaultSounds.click, muteSounds || globalMute);
         closeWindow(windowId);
