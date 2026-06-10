@@ -1,5 +1,5 @@
 ﻿import React, { useEffect } from "react";
-import { useWindowStore } from "@/components/WindowSystem";
+import { useWindowStore, type DefaultSounds } from "@/components/WindowSystem";
 
 export interface WindowConfiguratorProps {
     className?: string;
@@ -11,6 +11,8 @@ export interface WindowConfiguratorProps {
     defaultSoundDragEnd?: string;
     defaultSoundClick?: string;
     defaultSoundTaskbarHover?: string;
+    defaultSoundMinimize?: string;
+    defaultSoundMaximize?: string;
 }
 
 export const WindowConfigurator = ({
@@ -22,7 +24,9 @@ export const WindowConfigurator = ({
                                        defaultSoundDragStart,
                                        defaultSoundDragEnd,
                                        defaultSoundClick,
-                                       defaultSoundTaskbarHover
+                                       defaultSoundTaskbarHover,
+                                       defaultSoundMinimize,
+                                       defaultSoundMaximize
                                    }: WindowConfiguratorProps) => {
 
     // Grab the setter functions from your Zustand store
@@ -32,7 +36,7 @@ export const WindowConfigurator = ({
     // Whenever these props change in Plasmic, push them into the global store
     useEffect(() => {
         setGlobalMute(initialGlobalMute);
-        setDefaultSounds({
+        const sounds = {
             open: defaultSoundOpen,
             close: defaultSoundClose,
             focus: defaultSoundFocus,
@@ -40,10 +44,14 @@ export const WindowConfigurator = ({
             dragEnd: defaultSoundDragEnd,
             click: defaultSoundClick,
             taskbarHover: defaultSoundTaskbarHover,
-        });
+            minimize: defaultSoundMinimize,
+            maximize: defaultSoundMaximize,
+        } as DefaultSounds;
+        setDefaultSounds(sounds);
     }, [
         initialGlobalMute, defaultSoundOpen, defaultSoundClose, defaultSoundFocus,
         defaultSoundDragStart, defaultSoundDragEnd, defaultSoundClick, defaultSoundTaskbarHover,
+        defaultSoundMinimize, defaultSoundMaximize,
         setGlobalMute, setDefaultSounds
     ]);
 

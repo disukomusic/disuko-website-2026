@@ -7,7 +7,7 @@ export interface WindowProps {
     className?: string; children?: ReactNode; windowId: string; defaultOpen?: boolean;
     initialX?: string | number; initialY?: string | number; initialPosition?: string;
     soundOpen?: string; soundClose?: string; soundFocus?: string; soundDragStart?: string;
-    soundDragEnd?: string; muteSounds?: boolean; alwaysAtBack?: boolean;
+    soundDragEnd?: string; soundMinimize?: string; soundMaximize?: string; muteSounds?: boolean; alwaysAtBack?: boolean;
     onOpen?: () => void;
     onClose?: () => void;
     onFocus?: () => void;
@@ -19,7 +19,7 @@ export const WindowDragContext = createContext<any>(null);
 
 export const Window = ({
                            className, children, windowId, defaultOpen = false, initialX = 0, initialY = 0, initialPosition,
-                           soundOpen, soundClose, soundFocus, soundDragStart, soundDragEnd, muteSounds = false, alwaysAtBack = false,
+                           soundOpen, soundClose, soundFocus, soundDragStart, soundDragEnd, soundMinimize, soundMaximize, muteSounds = false, alwaysAtBack = false,
                            onOpen, onClose, onFocus, onUnfocus, onMinimize
                        }: WindowProps) => {
 
@@ -112,12 +112,16 @@ export const Window = ({
     useEffect(() => {
         if (!state) return;
         if (state.isMinimized !== prevIsMinimized.current) {
+            const isMuted = muteSounds || globalMute;
             if (state.isMinimized) {
+                playAudio(soundMinimize || defaultSounds.minimize, isMuted);
                 if (onMinimize) onMinimize();
+            } else if (state.isOpen) {
+                playAudio(soundMaximize || defaultSounds.maximize, isMuted);
             }
             prevIsMinimized.current = state.isMinimized;
         }
-    }, [state?.isMinimized, onMinimize]);
+    }, [state?.isMinimized, state?.isOpen, soundMinimize, soundMaximize, defaultSounds, muteSounds, globalMute, onMinimize]);
 
     const handlePointerDown = () => {
         if (!isFocused) playAudio(soundFocus || defaultSounds.focus, muteSounds || globalMute);

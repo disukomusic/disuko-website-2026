@@ -26,6 +26,8 @@ export type DefaultSounds = {
   dragEnd?: string;
   click?: string;
   taskbarHover?: string;
+  minimize?: string;
+  maximize?: string;
 };
 
 type WindowState = {
@@ -71,7 +73,7 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
       return {
         windowStates: {
           ...state.windowStates,
-          [id]: { isOpen: !!defaultOpen, isTaskbarHovered: false, isMinimized: false },
+          [id]: { isOpen: defaultOpen, isTaskbarHovered: false, isMinimized: false },
         },
         windowOrder: state.windowOrder.includes(id) ? state.windowOrder : [...state.windowOrder, id],
       };

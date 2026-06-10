@@ -104,6 +104,8 @@ PLASMIC.registerComponent(Window, {
     soundFocus: { type: "string" },
     soundDragStart: { type: "string" },
     soundDragEnd: { type: "string" },
+    soundMinimize: { type: "string", displayName: "Sound: Minimize" },
+    soundMaximize: { type: "string", displayName: "Sound: Maximize" },
     muteSounds: { type: "boolean", defaultValue: false, description: "Mute all interactions on this specific window" },
 
     onOpen: {
@@ -560,5 +562,7 @@ PLASMIC.registerComponent(WindowConfigurator, {
     defaultSoundDragEnd: { type: "string", displayName: "Sound: Drag End" },
     defaultSoundClick: { type: "string", displayName: "Sound: Button Click" },
     defaultSoundTaskbarHover: { type: "string", displayName: "Sound: Taskbar Hover" }
+    ,defaultSoundMinimize: { type: "string", displayName: "Sound: Minimize" },
+    defaultSoundMaximize: { type: "string", displayName: "Sound: Maximize" }
   }
 });
