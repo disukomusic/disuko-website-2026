@@ -20,6 +20,7 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const audioRef = useRef<HTMLAudioElement>(null);
+    const [fetchedAlbums, setFetchedAlbums] = useState<any[]>([]);
 
     // Fetch the tracks from Cloudflare Worker / R2 Manifest
     useEffect(() => {
@@ -29,7 +30,22 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
-                    setFetchedTracks(data);
+                    // 1. Expose the raw, nested album structure directly to Plasmic for UI mapping
+                    setFetchedAlbums(data);
+
+                    // 2. Flatten the tracks for the internal player logic (so next/prev works across albums)
+                    const allTracks = data.flatMap(album => {
+                        if (album.tracks && Array.isArray(album.tracks)) {
+                            return album.tracks.map((track: any) => ({
+                                ...track,
+                                artwork: album.artwork,
+                                albumName: album.albumName
+                            }));
+                        }
+                        return [album]; // Fallback just in case
+                    });
+
+                    setFetchedTracks(allTracks);
                 }
             })
             .catch(err => console.error("Failed to fetch library from R2:", err));
@@ -156,6 +172,7 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
 
     // 2. Prepare Data for Plasmic Studio
     const plasmicData = {
+        albums: fetchedAlbums,
         tracks: normalizedTracks,
         currentTrack,
         currentTrackIndex,
@@ -163,6 +180,7 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
         trackName: currentTrack.name || "No Track Selected",
         artist: currentTrack.artist || "Unknown Artist",
         artwork: currentTrack.artwork || "",
+        albumName: currentTrack.albumName || "",
         currentTimeFormatted: formatTime(currentTime),
         durationFormatted: formatTime(duration),
         timeRemainingFormatted: formatTime(timeRemaining),
