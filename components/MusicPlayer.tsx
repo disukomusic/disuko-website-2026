@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useRef, useEffect, createContext, useContext, forwardRef, useImperativeHandle } from 'react';
 import { DataProvider } from '@plasmicapp/host';
 
