@@ -1,6 +1,5 @@
-﻿import React, { ReactNode, useRef, useEffect, useLayoutEffect, useState, createContext } from "react";
-import { CurrentWindowContext, useWindowStore, playAudio } from "@/components/WindowSystem";
-import { useDesktopBounds } from "./Desktop";
+﻿import React, {ReactNode, useRef, useEffect, useLayoutEffect, useState, createContext, useContext} from "react";
+import { CurrentWindowContext, WindowGroupContext, useWindowStore, playAudio } from "@/components/WindowSystem";import { useDesktopBounds } from "./Desktop";
 import { motion, useMotionValue, useTransform, useVelocity, useSpring, useDragControls, animate as framerAnimate } from "framer-motion";
 
 export interface WindowProps {
@@ -28,7 +27,9 @@ export const Window = ({
     const { focusWindow, registerWindow, toggleMinimize } = useWindowStore();
     const defaultSounds = useWindowStore(state => state.defaultSounds);
     const globalMute = useWindowStore(state => state.globalMute);
-
+    const contextPageGroup = useContext(WindowGroupContext);
+    const resolvedPageGroup = pageGroup || contextPageGroup || "";
+    
     // 2. Grab SPECIFIC STATE
     const state = useWindowStore(s => s.windowStates[windowId]);
     const isFocused = useWindowStore(s => s.windowOrder[s.windowOrder.length - 1] === windowId);
@@ -77,8 +78,8 @@ export const Window = ({
     const prevIsMinimized = useRef(false);
 
     React.useEffect(() => {
-        registerWindow(windowId, defaultOpen, pageGroup);
-    }, [windowId, registerWindow, defaultOpen, pageGroup]);
+        registerWindow(windowId, defaultOpen, resolvedPageGroup);
+    }, [windowId, registerWindow, defaultOpen, resolvedPageGroup]);
 
     // Track Open / Close Events
     useEffect(() => {

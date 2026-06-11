@@ -20,6 +20,7 @@ import { WindowConfigurator } from "@/components/WindowConfigurator";
 import { BlogProvider } from './components/BlogProvider';
 import { BlogAdmin } from './components/BlogAdmin';
 import {UrlQueryOpener} from "@/components/UrlQueryOpener";
+import {WindowGroup} from "@/components/WindowGroup";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -630,4 +631,21 @@ PLASMIC.registerComponent(UrlQueryOpener, {
     className: "string",
   },
   description: "Reads the ?group= query parameter on load and automatically opens matching window groups while closing others.",
+});
+
+PLASMIC.registerComponent(WindowGroup, {
+  name: "Window Group",
+  description: "Wraps multiple Window components to assign them all to the same Page Group.",
+  props: {
+    children: {
+      type: "slot",
+      description: "Place Window components inside here.",
+    },
+    groupName: {
+      type: "string",
+      displayName: "Group Name",
+      description: "The Page Group name to apply to all child windows.",
+      defaultValue: "MyGroup",
+    },
+  },
 });

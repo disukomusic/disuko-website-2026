@@ -252,3 +252,9 @@ export const useCurrentWindow = () => {
   if (!ctx) throw new Error('Must be used within a Window component');
   return ctx;
 };
+
+export const WindowGroupContext = createContext<string | null>(null);
+
+export const useWindowGroup = () => {
+    return useContext(WindowGroupContext);
+};
