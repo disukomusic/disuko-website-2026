@@ -19,6 +19,7 @@ import { WindowActionBridge } from "@/components/WindowActionBridge";
 import { WindowConfigurator } from "@/components/WindowConfigurator";
 import { BlogProvider } from './components/BlogProvider';
 import { BlogAdmin } from './components/BlogAdmin';
+import {UrlQueryOpener} from "@/components/UrlQueryOpener";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -78,6 +79,7 @@ PLASMIC.registerComponent(Window, {
   providesData: true,
   props: {
     windowId: { type: "string", defaultValue: "my-window-1" },
+    pageGroup: "string",
     defaultOpen: { type: "boolean", defaultValue: false },
     alwaysAtBack: {
       type: "boolean",
@@ -619,4 +621,13 @@ PLASMIC.registerComponent(BlogAdmin, {
     titleClassName: { type: "class", displayName: "Title Class" },
     messageClassName: { type: "class", displayName: "Message Class" }
   }
+});
+
+PLASMIC.registerComponent(UrlQueryOpener, {
+  name: "UrlQueryOpener",
+  displayName: "URL Query Opener",
+  props: {
+    className: "string",
+  },
+  description: "Reads the ?group= query parameter on load and automatically opens matching window groups while closing others.",
 });

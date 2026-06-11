@@ -34,6 +34,7 @@ type WindowState = {
   isOpen: boolean;
   isTaskbarHovered: boolean;
   isMinimized: boolean;
+  pageGroup?: string;
 };
 
 // --- ZUSTAND STORE ---
@@ -46,7 +47,7 @@ interface WindowStore {
   // Actions
   setGlobalMute: (mute: boolean) => void;
   setDefaultSounds: (sounds: DefaultSounds) => void;
-  registerWindow: (id: string, defaultOpen?: boolean) => void;
+  registerWindow: (id: string, defaultOpen?: boolean, pageGroup?: string) => void;
   focusWindow: (id: string) => void;
   toggleWindow: (id: string) => void;
   toggleMinimize: (id: string) => void;
@@ -56,6 +57,7 @@ interface WindowStore {
   minimizeWindowsByPattern: (patterns: string) => void;
   closeWindowsByPattern: (patterns: string) => void;
   openWindowsByPattern: (patterns: string) => void;
+  openWindowsByGroup: (group: string) => void;
 }
 
 export const useWindowStore = create<WindowStore>((set, get) => ({
@@ -67,17 +69,45 @@ export const useWindowStore = create<WindowStore>((set, get) => ({
   setGlobalMute: (mute) => set({ globalMute: mute }),
   setDefaultSounds: (sounds) => set({ defaultSounds: sounds }),
 
-  registerWindow: (id, defaultOpen = false) =>
-    set((state) => {
-      if (state.windowStates[id]) return state; // already registered
-      return {
-        windowStates: {
-          ...state.windowStates,
-          [id]: { isOpen: defaultOpen, isTaskbarHovered: false, isMinimized: false },
-        },
-        windowOrder: state.windowOrder.includes(id) ? state.windowOrder : [...state.windowOrder, id],
-      };
-    }),
+    registerWindow: (id, defaultOpen = false, pageGroup = "") =>
+        set((state) => {
+            if (state.windowStates[id]) return state;
+            return {
+                windowStates: {
+                    ...state.windowStates,
+                    [id]: { isOpen: defaultOpen, isTaskbarHovered: false, isMinimized: false, pageGroup },
+                },
+                windowOrder: state.windowOrder.includes(id) ? state.windowOrder : [...state.windowOrder, id],
+            };
+        }),
+
+    openWindowsByGroup: (group) =>
+        set((state) => {
+            if (!group) return state;
+            const targetGroup = group.toLowerCase();
+            let hasChanges = false;
+            const nextState = { ...state.windowStates };
+
+            Object.entries(nextState).forEach(([id, winState]) => {
+                const isTargetGroup = winState.pageGroup?.toLowerCase() === targetGroup;
+
+                if (isTargetGroup) {
+                    // 1. If it belongs to the group and is closed, open it
+                    if (!winState.isOpen) {
+                        nextState[id] = { ...winState, isOpen: true, isMinimized: false };
+                        hasChanges = true;
+                    }
+                } else {
+                    // 2. If it DOES NOT belong to the group and is open, close it
+                    if (winState.isOpen) {
+                        nextState[id] = { ...winState, isOpen: false, isMinimized: false };
+                        hasChanges = true;
+                    }
+                }
+            });
+
+            return hasChanges ? { windowStates: nextState } : state;
+        }),
 
   focusWindow: (id) =>
     set((state) => {

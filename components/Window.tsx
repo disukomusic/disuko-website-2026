@@ -13,6 +13,7 @@ export interface WindowProps {
     onFocus?: () => void;
     onUnfocus?: () => void;
     onMinimize?: () => void;
+    pageGroup?: string;
 }
 
 export const WindowDragContext = createContext<any>(null);
@@ -20,7 +21,7 @@ export const WindowDragContext = createContext<any>(null);
 export const Window = ({
                            className, children, windowId, defaultOpen = false, initialX = 0, initialY = 0, initialPosition,
                            soundOpen, soundClose, soundFocus, soundDragStart, soundDragEnd, soundMinimize, soundMaximize, muteSounds = false, alwaysAtBack = false,
-                           onOpen, onClose, onFocus, onUnfocus, onMinimize
+                           onOpen, onClose, onFocus, onUnfocus, onMinimize, pageGroup = "",
                        }: WindowProps) => {
 
     // 1. Grab ACTIONS from the store
@@ -76,8 +77,8 @@ export const Window = ({
     const prevIsMinimized = useRef(false);
 
     React.useEffect(() => {
-        registerWindow(windowId, defaultOpen);
-    }, [windowId, registerWindow, defaultOpen]);
+        registerWindow(windowId, defaultOpen, pageGroup);
+    }, [windowId, registerWindow, defaultOpen, pageGroup]);
 
     // Track Open / Close Events
     useEffect(() => {
