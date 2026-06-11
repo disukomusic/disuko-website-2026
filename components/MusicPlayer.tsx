@@ -7,6 +7,10 @@ export const MusicContext = createContext<any>(null);
 export interface MusicPlayerRootRef {
     SetSong: (trackJson: any) => void;
     SetSongByUrl: (url: string) => void;
+    play: () => void;
+    pause: () => void;
+    nextTrack: () => void;
+    prevTrack: () => void;
 }
 
 export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function MusicPlayerRoot({ tracks, libraryUrl, children, className }, ref) {
@@ -92,6 +96,22 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
             } else {
                 console.warn("🎵 SetSongByUrl could not find a match for this URL!");
             }
+        },
+        play: () => {
+            console.log("🎵 Play Triggered!");
+            play();
+        },
+        pause: () => {
+            console.log("🎵 Pause Triggered!");
+            pause();
+        },
+        nextTrack: () => {
+            console.log("🎵 Next Track Triggered!");
+            setCurrentTrackIndex((i) => (i + 1) % (tracksRef.current.length || 1));
+        },
+        prevTrack: () => {
+            console.log("🎵 Previous Track Triggered!");
+            setCurrentTrackIndex((i) => (i - 1 + (tracksRef.current.length || 1)) % (tracksRef.current.length || 1));
         }
     }), []);
     

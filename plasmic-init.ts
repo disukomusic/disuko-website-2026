@@ -321,6 +321,22 @@ PLASMIC.registerComponent(MusicPlayerRoot, {
     SetSongByUrl: {
       description: 'Set the current song by passing its URL (Production Safe).',
       argTypes: [{ name: 'url', type: 'string', displayName: 'Track URL' }]
+    },
+    play: {
+      description: 'Start playing the current track.',
+      argTypes: []
+    },
+    pause: {
+      description: 'Pause the current track.',
+      argTypes: []
+    },
+    nextTrack: {
+      description: 'Skip to the next track in the playlist.',
+      argTypes: []
+    },
+    prevTrack: {
+      description: 'Skip to the previous track in the playlist.',
+      argTypes: []
     }
   }
 });
