@@ -49,7 +49,15 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
 
     useImperativeHandle(ref, () => ({
         SetSong: (trackJson: any) => {
-            if (!Array.isArray(normalizedTracks) || !normalizedTracks.length || !trackJson) return;
+            // TRACER BULLET LOGS
+            console.log("🎵 SetSong Triggered!");
+            console.log("🎵 Track passed from Plasmic:", trackJson);
+            console.log("🎵 Total available tracks:", normalizedTracks);
+
+            if (!Array.isArray(normalizedTracks) || !normalizedTracks.length || !trackJson) {
+                console.warn("🎵 SetSong Aborted: Missing tracks array or trackJson is null");
+                return;
+            }
 
             const targetIndex = normalizedTracks.findIndex((track: any) => {
                 if (track === trackJson) return true;
@@ -57,8 +65,12 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
                 return track?.name === trackJson.name && track?.artist === trackJson.artist;
             });
 
+            console.log("🎵 Found at Index:", targetIndex);
+
             if (targetIndex >= 0) {
                 setCurrentTrackIndex(targetIndex);
+            } else {
+                console.warn("🎵 SetSong could not find a match in normalizedTracks!");
             }
         }
     }), [normalizedTracks]);
