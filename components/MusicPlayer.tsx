@@ -36,30 +36,28 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
 
     const currentTrack = normalizedTracks.length > 0 ? normalizedTracks[currentTrackIndex] : {};
 
-    // Keep index valid if the tracks array shrinks or changes
-    useEffect(() => {
-        if (!normalizedTracks.length) {
-            setCurrentTrackIndex(0);
-            return;
-        }
-        if (currentTrackIndex >= normalizedTracks.length) {
-            setCurrentTrackIndex(normalizedTracks.length - 1);
-        }
-    }, [normalizedTracks.length, currentTrackIndex]);
+    // 1. Create a stable reference to hold the latest tracks
+    const tracksRef = useRef(normalizedTracks);
 
+    // 2. Keep it updated silently without triggering ref teardowns
+    useEffect(() => {
+        tracksRef.current = normalizedTracks;
+    }, [normalizedTracks]);
+
+    // 3. Make the imperative handle completely stable (empty array at the bottom)
     useImperativeHandle(ref, () => ({
         SetSong: (trackJson: any) => {
-            // TRACER BULLET LOGS
+            const currentTracks = tracksRef.current; // Grab the freshest data
+
             console.log("🎵 SetSong Triggered!");
             console.log("🎵 Track passed from Plasmic:", trackJson);
-            console.log("🎵 Total available tracks:", normalizedTracks);
 
-            if (!Array.isArray(normalizedTracks) || !normalizedTracks.length || !trackJson) {
+            if (!Array.isArray(currentTracks) || !currentTracks.length || !trackJson) {
                 console.warn("🎵 SetSong Aborted: Missing tracks array or trackJson is null");
                 return;
             }
 
-            const targetIndex = normalizedTracks.findIndex((track: any) => {
+            const targetIndex = currentTracks.findIndex((track: any) => {
                 if (track === trackJson) return true;
                 if (trackJson.url && track?.url === trackJson.url) return true;
                 return track?.name === trackJson.name && track?.artist === trackJson.artist;
@@ -70,10 +68,10 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
             if (targetIndex >= 0) {
                 setCurrentTrackIndex(targetIndex);
             } else {
-                console.warn("🎵 SetSong could not find a match in normalizedTracks!");
+                console.warn("🎵 SetSong could not find a match!");
             }
         }
-    }), [normalizedTracks]);
+    }), []); // <--- EMPTY ARRAY: The ref will never detach again
     
     // Audio Event Handlers
     const onTimeUpdate = () => setCurrentTime(audioRef.current?.currentTime || 0);
