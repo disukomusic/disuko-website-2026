@@ -17,6 +17,8 @@ import { ReactiveBackground} from "@/components/ReactiveBackground";
 import { WindowMinimizeButton } from "@/components/WindowMinimizeButton";
 import { WindowActionBridge } from "@/components/WindowActionBridge";
 import { WindowConfigurator } from "@/components/WindowConfigurator";
+import { BlogProvider } from './components/BlogProvider';
+import { BlogAdmin } from './components/BlogAdmin';
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -564,5 +566,36 @@ PLASMIC.registerComponent(WindowConfigurator, {
     defaultSoundTaskbarHover: { type: "string", displayName: "Sound: Taskbar Hover" }
     ,defaultSoundMinimize: { type: "string", displayName: "Sound: Minimize" },
     defaultSoundMaximize: { type: "string", displayName: "Sound: Maximize" }
+  }
+});
+
+PLASMIC.registerComponent(BlogProvider, {
+  name: 'BlogProvider',
+  providesData: true,
+  props: {
+    apiEndpoint: {
+      type: 'string',
+      defaultValue: 'https://plasmic-blog-api.disukomusic.workers.dev',
+      description: 'The URL of your Cloudflare Worker endpoint'
+    },
+    children: {
+      type: 'slot'
+    }
+  }
+});
+
+PLASMIC.registerComponent(BlogAdmin, {
+  name: 'BlogAdmin',
+  props: {
+    apiEndpoint: {
+      type: 'string',
+      defaultValue: 'https://plasmic-blog-api.disukomusic.workers.dev',
+      description: 'The URL of your Cloudflare Worker endpoint'
+    },
+    formClassName: { type: "class", displayName: "Form Class" },
+    inputClassName: { type: "class", displayName: "Input Class" },
+    buttonClassName: { type: "class", displayName: "Button Class" },
+    titleClassName: { type: "class", displayName: "Title Class" },
+    messageClassName: { type: "class", displayName: "Message Class" }
   }
 });
