@@ -317,6 +317,10 @@ PLASMIC.registerComponent(MusicPlayerRoot, {
           displayName: 'Track JSON'
         }
       ]
+    },
+    SetSongByUrl: {
+      description: 'Set the current song by passing its URL (Production Safe).',
+      argTypes: [{ name: 'url', type: 'string', displayName: 'Track URL' }]
     }
   }
 });

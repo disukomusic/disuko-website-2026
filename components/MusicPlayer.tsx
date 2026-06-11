@@ -6,6 +6,7 @@ export const MusicContext = createContext<any>(null);
 
 export interface MusicPlayerRootRef {
     SetSong: (trackJson: any) => void;
+    SetSongByUrl: (url: string) => void;
 }
 
 export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function MusicPlayerRoot({ tracks, libraryUrl, children, className }, ref) {
@@ -70,8 +71,29 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
             } else {
                 console.warn("🎵 SetSong could not find a match!");
             }
+        },
+        SetSongByUrl: (url: string) => {
+            const currentTracks = tracksRef.current;
+
+            console.log("🎵 SetSongByUrl Triggered! URL:", url);
+
+            if (!Array.isArray(currentTracks) || !currentTracks.length || !url) {
+                console.warn("🎵 SetSongByUrl Aborted: Missing tracks array or URL is null");
+                return;
+            }
+
+            // Find the index strictly by matching the URL string
+            const targetIndex = currentTracks.findIndex((track: any) => track.url === url);
+
+            console.log("🎵 Found at Index:", targetIndex);
+
+            if (targetIndex >= 0) {
+                setCurrentTrackIndex(targetIndex);
+            } else {
+                console.warn("🎵 SetSongByUrl could not find a match for this URL!");
+            }
         }
-    }), []); // <--- EMPTY ARRAY: The ref will never detach again
+    }), []);
     
     // Audio Event Handlers
     const onTimeUpdate = () => setCurrentTime(audioRef.current?.currentTime || 0);
