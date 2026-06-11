@@ -268,6 +268,7 @@ PLASMIC.registerComponent(MusicPlayerRoot, {
   name: 'MusicPlayerRoot',
   displayName: 'Music Player (Root)',
   providesData: true,
+  refProp: 'ref',
   props: {
     libraryUrl: {
       type: 'string',
