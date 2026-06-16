@@ -174,6 +174,12 @@ PLASMIC.registerComponent(Desktop, {
   name: "Desktop",
   providesData: true,
   props: {
+    mobileMode: {
+      type: "boolean",
+      defaultValue: false,
+      displayName: "Mobile Mode",
+      description: "When enabled, stacks windows vertically and stretches them to 100% width."
+    },
     children: {
       type: "slot",
       defaultValue: [

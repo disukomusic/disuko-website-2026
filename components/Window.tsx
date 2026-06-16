@@ -1,7 +1,7 @@
 ﻿import React, {ReactNode, useRef, useEffect, useLayoutEffect, useState, createContext, useContext} from "react";
-import { CurrentWindowContext, WindowGroupContext, useWindowStore, playAudio } from "@/components/WindowSystem";import { useDesktopBounds } from "./Desktop";
+import { CurrentWindowContext, WindowGroupContext, useWindowStore, playAudio } from "@/components/WindowSystem";
+import { useDesktopBounds, useMobileMode } from "./Desktop"; // Added useMobileMode
 import { motion, useMotionValue, useTransform, useVelocity, useSpring, useDragControls, animate as framerAnimate } from "framer-motion";
-
 export interface WindowProps {
     className?: string; children?: ReactNode; windowId: string; defaultOpen?: boolean;
     initialX?: string | number; initialY?: string | number; initialPosition?: string;
@@ -46,7 +46,8 @@ export const Window = ({
     const windowRef = useRef<HTMLDivElement>(null);
     const dragControls = useDragControls();
     const desktopBoundsRef = useDesktopBounds();
-
+    const mobileMode = useMobileMode();
+    
     const [origin, setOrigin] = useState({ x: "50%", y: "24px" });
     const [isRendered, setIsRendered] = useState(defaultOpen);
 
@@ -186,8 +187,9 @@ export const Window = ({
                 <motion.div
                     ref={windowRef}
                     className={className}
-                    layout
-                    drag={state.isOpen && !isMinimized}
+                    // 1. Disable layout animations in mobile so Framer doesn't freeze your custom Plasmic heights
+                    layout={!mobileMode}
+                    drag={state.isOpen && !isMinimized && !mobileMode}
                     dragControls={dragControls}
                     dragListener={false}
                     dragMomentum={false}
@@ -205,7 +207,6 @@ export const Window = ({
                     transition={{ type: "spring", stiffness: 300, damping: 25, mass: 0.8 }}
                     onAnimationComplete={() => {
                         if (state.isOpen) {
-                            // Fix: Check if origin is already set to prevent infinite looping
                             if (origin.x !== "50%" || origin.y !== "24px") {
                                 setOrigin({ x: "50%", y: "24px" });
                                 setTimeout(() => window.dispatchEvent(new Event('resize')), 10);
@@ -214,28 +215,38 @@ export const Window = ({
                             setIsRendered(false);
                         }
                     }}
-                    
+
                     style={{
-                        x, y, rotate,
+                        x: mobileMode ? 0 : x,
+                        y: mobileMode ? 0 : y,
+                        rotate: mobileMode ? 0 : rotate,
                         transformOrigin: `${origin.x} ${origin.y}`,
                         pointerEvents: state.isOpen ? 'auto' : 'none',
+
+                        // 2. Ensure flex is actively applied so your contents flow correctly
+                        display: (state.isOpen || isRendered) ? 'flex' : 'none',
                         flexDirection: 'column',
-                        position: 'absolute',
+
+                        position: mobileMode ? 'relative' : 'absolute',
                         zIndex: calculatedZIndex,
                         overflow: isMinimized ? 'hidden' : 'visible',
                         cursor: isMinimized ? 'pointer' : 'default',
+
+                        // 3. Stop the flex container from squishing your windows!
+                        flexShrink: mobileMode ? 0 : undefined,
+
                         ...(isMinimized ? {
-                            width: 256,
+                            width: mobileMode ? '100%' : 256,
                             height: 82,
                             padding: 16,
-                            left: "calc(100% - 276px)",
-                            top: 10 + Math.max(0, minimizedIndex) * 74,
+                            left: mobileMode ? 'auto' : "calc(100% - 276px)",
+                            top: mobileMode ? 'auto' : 10 + Math.max(0, minimizedIndex) * 74,
                             right: "auto",
                             bottom: "auto"
                         } : {
-                            width: undefined,
-                            height: undefined,
-                            ...startStyles
+                            width: mobileMode ? '100%' : undefined,
+                            height: undefined, // Allows the height you set in Plasmic to pass through
+                            ...(mobileMode ? { left: 'auto', top: 'auto', right: 'auto', bottom: 'auto' } : startStyles)
                         })
                     }}
                     data-focused={isFocused}
