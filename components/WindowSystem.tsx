@@ -5,17 +5,26 @@ import { create } from 'zustand';
 const audioDebounceMap = new Map<string, number>();
 
 export const playAudio = (url?: string, muted?: boolean) => {
-  if (!url || muted) return;
-  const now = Date.now();
-  const lastPlayed = audioDebounceMap.get(url) || 0;
-  if (now - lastPlayed < 50) return;
-  audioDebounceMap.set(url, now);
-  try {
-    const audio = new Audio(url);
-    audio.play().catch((e) => console.warn('Audio play blocked/failed:', e));
-  } catch (e) {
-    console.error('Invalid audio playback', e);
-  }
+    if (!url) return;
+
+    // Grab the current state directly from Zustand
+    const { globalMute, globalVolume } = useWindowStore.getState();
+
+    // Respect both the local muted prop and the global mute
+    if (muted || globalMute) return;
+
+    const now = Date.now();
+    const lastPlayed = audioDebounceMap.get(url) || 0;
+    if (now - lastPlayed < 50) return;
+    audioDebounceMap.set(url, now);
+
+    try {
+        const audio = new Audio(url);
+        audio.volume = globalVolume; // Apply the global volume
+        audio.play().catch((e) => console.warn('Audio play blocked/failed:', e));
+    } catch (e) {
+        console.error('Invalid audio playback', e);
+    }
 };
 
 export type DefaultSounds = {
@@ -42,10 +51,12 @@ interface WindowStore {
   windowStates: Record<string, WindowState>;
   windowOrder: string[];
   globalMute: boolean;
+  globalVolume: number;
   defaultSounds: DefaultSounds;
 
   // Actions
   setGlobalMute: (mute: boolean) => void;
+  setGlobalVolume: (volume: number) => void;
   setDefaultSounds: (sounds: DefaultSounds) => void;
   registerWindow: (id: string, defaultOpen?: boolean, pageGroup?: string) => void;
   focusWindow: (id: string) => void;
@@ -61,13 +72,16 @@ interface WindowStore {
 }
 
 export const useWindowStore = create<WindowStore>((set, get) => ({
-  windowStates: {},
-  windowOrder: [],
-  globalMute: false,
-  defaultSounds: {},
 
-  setGlobalMute: (mute) => set({ globalMute: mute }),
-  setDefaultSounds: (sounds) => set({ defaultSounds: sounds }),
+    windowStates: {}, 
+    windowOrder: [], 
+    globalMute: false, 
+    globalVolume: 1, 
+    defaultSounds: {},
+    
+    setGlobalMute: (mute) => set({ globalMute: mute }), 
+    setGlobalVolume: (volume) => set({ globalVolume: Math.max(0, Math.min(1, volume)) }), // Constrain between 0 and 1
+    setDefaultSounds: (sounds) => set({ defaultSounds: sounds }),
 
     registerWindow: (id, defaultOpen = false, pageGroup = "") =>
         set((state) => {

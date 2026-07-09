@@ -13,6 +13,7 @@ export interface WindowConfiguratorProps {
     defaultSoundTaskbarHover?: string;
     defaultSoundMinimize?: string;
     defaultSoundMaximize?: string;
+    initialGlobalVolume?: number;
 }
 
 export const WindowConfigurator = ({
@@ -26,16 +27,19 @@ export const WindowConfigurator = ({
                                        defaultSoundClick,
                                        defaultSoundTaskbarHover,
                                        defaultSoundMinimize,
-                                       defaultSoundMaximize
+                                       defaultSoundMaximize,
+                                       initialGlobalVolume = 1
                                    }: WindowConfiguratorProps) => {
 
     // Grab the setter functions from your Zustand store
     const setGlobalMute = useWindowStore(state => state.setGlobalMute);
+    const setGlobalVolume = useWindowStore(state => state.setGlobalVolume);
     const setDefaultSounds = useWindowStore(state => state.setDefaultSounds);
 
     // Whenever these props change in Plasmic, push them into the global store
     useEffect(() => {
         setGlobalMute(initialGlobalMute);
+        setGlobalVolume(initialGlobalVolume);
         const sounds = {
             open: defaultSoundOpen,
             close: defaultSoundClose,
@@ -49,7 +53,7 @@ export const WindowConfigurator = ({
         } as DefaultSounds;
         setDefaultSounds(sounds);
     }, [
-        initialGlobalMute, defaultSoundOpen, defaultSoundClose, defaultSoundFocus,
+        initialGlobalMute, initialGlobalVolume, defaultSoundOpen, defaultSoundClose, defaultSoundFocus,
         defaultSoundDragStart, defaultSoundDragEnd, defaultSoundClick, defaultSoundTaskbarHover,
         defaultSoundMinimize, defaultSoundMaximize,
         setGlobalMute, setDefaultSounds

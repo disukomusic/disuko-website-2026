@@ -21,6 +21,7 @@ import { BlogProvider } from './components/BlogProvider';
 import { BlogAdmin } from './components/BlogAdmin';
 import {UrlQueryOpener} from "@/components/UrlQueryOpener";
 import {WindowGroup} from "@/components/WindowGroup";
+import { GlobalVolumeControl } from "@/components/GlobalVolumeControl";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -587,14 +588,20 @@ PLASMIC.registerComponent(WindowConfigurator, {
       defaultValue: false,
       displayName: "Mute All Sounds"
     },
+    initialGlobalVolume: {
+      type: "number",
+      defaultValue: 1,
+      displayName: "Initial Global Volume",
+      description: "Starting volume level from 0.0 to 1.0"
+    },
     defaultSoundOpen: { type: "string", displayName: "Sound: Open" },
     defaultSoundClose: { type: "string", displayName: "Sound: Close" },
     defaultSoundFocus: { type: "string", displayName: "Sound: Focus" },
     defaultSoundDragStart: { type: "string", displayName: "Sound: Drag Start" },
     defaultSoundDragEnd: { type: "string", displayName: "Sound: Drag End" },
     defaultSoundClick: { type: "string", displayName: "Sound: Button Click" },
-    defaultSoundTaskbarHover: { type: "string", displayName: "Sound: Taskbar Hover" }
-    ,defaultSoundMinimize: { type: "string", displayName: "Sound: Minimize" },
+    defaultSoundTaskbarHover: { type: "string", displayName: "Sound: Taskbar Hover" },
+    defaultSoundMinimize: { type: "string", displayName: "Sound: Minimize" },
     defaultSoundMaximize: { type: "string", displayName: "Sound: Maximize" }
   }
 });
@@ -654,4 +661,46 @@ PLASMIC.registerComponent(WindowGroup, {
       defaultValue: "MyGroup",
     },
   },
+});
+
+PLASMIC.registerComponent(GlobalVolumeControl, {
+  name: "GlobalVolumeControl",
+  displayName: "Global Volume Control",
+  props: {
+    muteIconSlot: {
+      type: "slot",
+      defaultValue: {
+        type: "text",
+        value: "🔇"
+      }
+    },
+    unmuteIconSlot: {
+      type: "slot",
+      defaultValue: {
+        type: "text",
+        value: "🔊"
+      }
+    },
+    trackSlot: {
+      type: "slot",
+      defaultValue: {
+        type: "vbox",
+        styles: { width: "100%", height: "4px", backgroundColor: "#e0e0e0", borderRadius: "2px" }
+      }
+    },
+    fillSlot: {
+      type: "slot",
+      defaultValue: {
+        type: "vbox",
+        styles: { width: "100%", height: "4px", backgroundColor: "#000000", borderRadius: "2px" }
+      }
+    },
+    thumbSlot: {
+      type: "slot",
+      defaultValue: {
+        type: "vbox",
+        styles: { width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#000000" }
+      }
+    }
+  }
 });

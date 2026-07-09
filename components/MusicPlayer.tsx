@@ -1,6 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect, createContext, useContext, forwardRef, useImperativeHandle } from 'react';
 import { DataProvider } from '@plasmicapp/host';
+import { useWindowStore } from './WindowSystem';
 
 export const MusicContext = createContext<any>(null);
 
@@ -31,9 +32,8 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
             .then(data => {
                 if (Array.isArray(data)) {
                     // 1. Expose the raw, nested album structure directly to Plasmic for UI mapping
-                    setFetchedAlbums(data);
+                    setFetchedAlbums(data);                    // 2. Flatten the tracks for the internal player logic (so next/prev works across albums)
 
-                    // 2. Flatten the tracks for the internal player logic (so next/prev works across albums)
                     const allTracks = data.flatMap(album => {
                         if (album.tracks && Array.isArray(album.tracks)) {
                             return album.tracks.map((track: any) => ({
@@ -154,6 +154,17 @@ export const MusicPlayerRoot = forwardRef<MusicPlayerRootRef, any>(function Musi
             audioRef.current.play().catch(e => console.error("Playback failed:", e));
         }
     }, [currentTrackIndex]);
+
+    // Pull global settings from the window store
+    const { globalMute, globalVolume } = useWindowStore();
+
+    // Sync the audio element with global mute and volume
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.muted = globalMute;
+            audioRef.current.volume = globalVolume;
+        }
+    }, [globalMute, globalVolume]);
 
     // Added currentTime, duration, and seekTo to the context
     const contextValue = {

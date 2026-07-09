@@ -17,8 +17,9 @@ export function MusicWindowSync({ className, windowId, fadeDuration = 500 }: Mus
     if (!musicCtx || !windowCtx) return null;
 
     const { audioRef, isPlaying, pause } = musicCtx;
-    const isOpen = windowCtx.windowStates[windowId]?.isOpen;
-
+    const { windowStates, globalVolume } = windowCtx;
+    const isOpen = windowStates[windowId]?.isOpen;
+    
     useEffect(() => {
         const audioEl = audioRef?.current;
         if (!audioEl) return;
@@ -48,7 +49,7 @@ export function MusicWindowSync({ className, windowId, fadeDuration = 500 }: Mus
 
                     // CRITICAL: Restore the volume instantly while paused, 
                     // otherwise the user will hit play later and hear nothing!
-                    audioEl.volume = initialVol;
+                    audioEl.volume = globalVolume;
                 }
             }, stepTime);
 
