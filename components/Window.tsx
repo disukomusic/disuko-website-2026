@@ -187,6 +187,13 @@ export const Window = ({
                 <motion.div
                     ref={windowRef}
                     className={className}
+
+                    // 1. Explicitly tell the DOM this is not a native drag element
+                    draggable={false}
+                    // 2. Kill the native HTML5 drag event in the capture phase 
+                    // (This ensures it doesn't overwrite Framer Motion's custom onDragStart)
+                    onDragStartCapture={(e) => e.preventDefault()}
+
                     // 1. Disable layout animations in mobile so Framer doesn't freeze your custom Plasmic heights
                     layout={!mobileMode}
                     drag={state.isOpen && !isMinimized && !mobileMode}
@@ -197,8 +204,11 @@ export const Window = ({
                     dragElastic={0}
                     onPointerDownCapture={handlePointerDown}
                     onClick={() => { if (isMinimized) toggleMinimize(windowId); }}
+
+                    // Framer Motion's custom drag event (safe to keep)
                     onDragStart={() => playAudio(soundDragStart || defaultSounds.dragStart, muteSounds || globalMute)}
                     onDragEnd={() => playAudio(soundDragEnd || defaultSounds.dragEnd, muteSounds || globalMute)}
+
                     initial={false}
                     animate={{
                         scale: state.isOpen ? 1 : 0,
@@ -223,6 +233,10 @@ export const Window = ({
                         transformOrigin: `${origin.x} ${origin.y}`,
                         pointerEvents: state.isOpen ? 'auto' : 'none',
 
+                        // 3. Stop ghost dragging of the container via CSS
+                        // @ts-ignore - TS doesn't know about this WebKit vendor prefix in MotionStyle
+                        WebkitUserDrag: 'none',
+
                         // 2. Ensure flex is actively applied so your contents flow correctly
                         display: (state.isOpen || isRendered) ? 'flex' : 'none',
                         flexDirection: 'column',
@@ -245,7 +259,7 @@ export const Window = ({
                             bottom: "auto"
                         } : {
                             width: mobileMode ? '100%' : undefined,
-                            height: undefined, // Allows the height you set in Plasmic to pass through
+                            height: undefined,
                             ...(mobileMode ? { left: 'auto', top: 'auto', right: 'auto', bottom: 'auto' } : startStyles)
                         })
                     }}

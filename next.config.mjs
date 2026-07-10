@@ -22,7 +22,15 @@ const nextConfig = {
       {
         source: '/webdesign',
         destination: '/',
-      }
+      },
+      {
+        source: '/graphicdesign',
+        destination: '/',
+      },
+      {
+        source: '/CAD',
+        destination: '/',
+      },
     ];
   },
 };

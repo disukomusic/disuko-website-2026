@@ -23,6 +23,7 @@ import {UrlQueryOpener} from "@/components/UrlQueryOpener";
 import {WindowGroup} from "@/components/WindowGroup";
 import { GlobalVolumeControl } from "@/components/GlobalVolumeControl";
 import { WindowRouter } from "@/components/WindowRouter";
+import { PortfolioCanvas, PortfolioItem } from '@/components/PortfolioSystem';
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -723,4 +724,46 @@ PLASMIC.registerComponent(WindowRouter, {
       defaultValue: ""
     }
   }
+});
+
+PLASMIC.registerComponent(PortfolioCanvas, {
+  name: 'Portfolio Canvas',
+  props: {
+    children: {
+      type: 'slot',
+      allowedComponents: ['Portfolio Item'], // Restrict so only items go here
+    },
+    background: {
+      type: 'slot',
+    },
+  },
+});
+
+PLASMIC.registerComponent(PortfolioItem, {
+  name: 'Portfolio Item',
+  props: {
+    priority: {
+      type: 'choice',
+      options: ['1', '2', '3'],
+      defaultValue: '1',
+      description: '1 is normal, 3 is largest',
+    },
+    x: {
+      type: 'number',
+      defaultValue: 100,
+      description: 'X coordinate on the canvas',
+    },
+    y: {
+      type: 'number',
+      defaultValue: 100,
+      description: 'Y coordinate on the canvas',
+    },
+    imageSlot: { type: 'slot' },
+    descriptionSlot: { type: 'slot' },
+    linkSlot: { type: 'slot' },
+    onItemClick: {
+      type: 'eventHandler',
+      argTypes: [],
+    },
+  },
 });
