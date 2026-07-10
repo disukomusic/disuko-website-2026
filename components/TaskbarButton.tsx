@@ -6,7 +6,8 @@ export interface TaskbarButtonProps {
     children?: ReactNode;
     targetWindowIds: string;
     soloMode?: boolean;
-    minimizeGroup?: string; // NEW: The group of windows to minimize
+    minimizeGroup?: string;
+    routeUrl?: string;
     soundClick?: string;
     soundHover?: string;
     muteSounds?: boolean;
@@ -15,7 +16,7 @@ export interface TaskbarButtonProps {
 
 export const TaskbarButton = ({
                                   className, children, targetWindowIds = "", soloMode = false,
-                                  minimizeGroup = "", // NEW
+                                  minimizeGroup = "", routeUrl,
                                   soundClick, soundHover, muteSounds = false, onCustomAction
                               }: TaskbarButtonProps) => {
 
@@ -36,6 +37,8 @@ export const TaskbarButton = ({
                 resolved.push(pattern);
             }
         });
+        
+        
         return Array.from(new Set(resolved));
     }, [targetWindowIds, windowStates]);
 
@@ -64,20 +67,23 @@ export const TaskbarButton = ({
     const handleClick = () => {
         playAudio(soundClick || defaultSounds.click, muteSounds || globalMute);
 
+        if (routeUrl) {
+            const formattedUrl = routeUrl.startsWith('/') ? routeUrl : `/${routeUrl}`;
+            if (window.location.pathname !== formattedUrl) {
+                window.history.pushState({}, '', formattedUrl);
+            }
+        }
+
         if (needsRestore) {
-            // Standard Solo mode: closes other windows entirely
             if (soloMode) {
                 Object.keys(windowStates).forEach((id) => {
                     if (!ids.includes(id) && windowStates[id]?.isOpen) closeWindow(id);
                 });
             }
 
-            // Minimize Group logic: soft solo mode
-            // Only trigger when we are opening/restoring the target windows
             if (minimizeIds.length > 0) {
                 minimizeIds.forEach((id) => {
                     const state = windowStates[id];
-                    // If it's open, not already minimized, and NOT part of the window we are currently opening
                     if (state && state.isOpen && !state.isMinimized && !ids.includes(id)) {
                         toggleMinimize(id);
                     }

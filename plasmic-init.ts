@@ -22,6 +22,7 @@ import { BlogAdmin } from './components/BlogAdmin';
 import {UrlQueryOpener} from "@/components/UrlQueryOpener";
 import {WindowGroup} from "@/components/WindowGroup";
 import { GlobalVolumeControl } from "@/components/GlobalVolumeControl";
+import { WindowRouter } from "@/components/WindowRouter";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -62,6 +63,11 @@ PLASMIC.registerComponent(TaskbarButton, {
       defaultValue: "",
       displayName: "Minimize Group",
       description: "Comma-separated IDs (e.g., 'overlay-*'). When clicked, these windows will be minimized instead of closed."
+    },
+    routeUrl: {
+      type: "string",
+      displayName: "Route URL",
+      description: "The URL path to push to the address bar when clicked (e.g., '/music')."
     },
     children: { type: "slot" },
     soundClick: { type: "string" },
@@ -701,6 +707,20 @@ PLASMIC.registerComponent(GlobalVolumeControl, {
         type: "vbox",
         styles: { width: "12px", height: "12px", borderRadius: "50%", backgroundColor: "#000000" }
       }
+    }
+  }
+});
+
+PLASMIC.registerComponent(WindowRouter, {
+  name: "WindowRouter",
+  displayName: "Window Router",
+  description: "Listens to URL changes and opens window groups automatically. ",
+  props: {
+    defaultRoute: {
+      type: "string",
+      displayName: "Default Route",
+      description: "The default pageGroup to open if the URL is just '/' (e.g., 'home')",
+      defaultValue: ""
     }
   }
 });
