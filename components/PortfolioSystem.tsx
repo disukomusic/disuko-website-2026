@@ -1,4 +1,17 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+﻿import React, { useState, useRef, useEffect, ReactNode, MouseEvent as ReactMouseEvent } from 'react';
+
+interface CustomCSSProperties extends React.CSSProperties {
+    WebkitUserDrag?: string;
+}
+
+// Type definitions for Canvas Props
+interface PortfolioCanvasProps {
+    children?: ReactNode;
+    background?: ReactNode;
+    className?: string;
+    worldWidth?: number;
+    worldHeight?: number;
+}
 
 // --- CANVAS COMPONENT ---
 export function PortfolioCanvas({
@@ -7,18 +20,18 @@ export function PortfolioCanvas({
                                     className,
                                     worldWidth = 4000,
                                     worldHeight = 4000
-                                }) {
+                                }: PortfolioCanvasProps) {
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [isDragging, setIsDragging] = useState(false);
     const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
 
-    const containerRef = useRef(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const dragStart = useRef({ x: 0, y: 0 });
     const lastMouse = useRef({ x: 0, y: 0, time: 0 });
     const velocity = useRef({ x: 0, y: 0 });
-    const animationFrameRef = useRef(null);
 
-    // Track the viewport size for the minimap
+    const animationFrameRef = useRef<number | null>(null);
+
     useEffect(() => {
         if (!containerRef.current) return;
         const observer = new ResizeObserver((entries) => {
@@ -29,8 +42,7 @@ export function PortfolioCanvas({
         return () => observer.disconnect();
     }, []);
 
-    const handleMouseDown = (e) => {
-        // Cancel any existing momentum when the user clicks
+    const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
         if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
         }
@@ -49,13 +61,12 @@ export function PortfolioCanvas({
     };
 
     useEffect(() => {
-        const handleMouseMove = (e) => {
+        const handleMouseMove = (e: MouseEvent) => {
             if (!isDragging) return;
 
             const now = performance.now();
             const dt = now - lastMouse.current.time;
 
-            // Calculate velocity (pixels per millisecond)
             if (dt > 0) {
                 velocity.current = {
                     x: (e.clientX - lastMouse.current.x) / dt,
@@ -75,8 +86,7 @@ export function PortfolioCanvas({
             if (!isDragging) return;
             setIsDragging(false);
 
-            // Apply Inertia / Momentum
-            const friction = 0.92; // Adjust between 0.8 (heavy) and 0.99 (slippery)
+            const friction = 0.92;
 
             const applyPhysics = () => {
                 velocity.current.x *= friction;
@@ -86,10 +96,9 @@ export function PortfolioCanvas({
                     velocity.current.x ** 2 + velocity.current.y ** 2
                 );
 
-                // Stop animating when velocity is low enough
                 if (speed > 0.05) {
                     setPosition((prev) => ({
-                        x: prev.x + velocity.current.x * 16, // Approx 16ms per frame at 60fps
+                        x: prev.x + velocity.current.x * 16,
                         y: prev.y + velocity.current.y * 16
                     }));
                     animationFrameRef.current = requestAnimationFrame(applyPhysics);
@@ -110,7 +119,6 @@ export function PortfolioCanvas({
         };
     }, [isDragging]);
 
-    // Cleanup animation frame on unmount
     useEffect(() => {
         return () => {
             if (animationFrameRef.current) {
@@ -119,17 +127,26 @@ export function PortfolioCanvas({
         };
     }, []);
 
-    // --- Minimap Calculations ---
-    const minimapSize = 150; // pixel size of the minimap
+    const minimapSize = 150;
     const scaleX = minimapSize / worldWidth;
     const scaleY = minimapSize / worldHeight;
 
-    // Calculate the viewport box position on the minimap
-    // Offset by half the world size because the canvas starts at (0,0) center
     const mapViewportX = (-position.x + (worldWidth / 2) - (viewportSize.width / 2)) * scaleX;
     const mapViewportY = (-position.y + (worldHeight / 2) - (viewportSize.height / 2)) * scaleY;
     const mapViewportWidth = viewportSize.width * scaleX;
     const mapViewportHeight = viewportSize.height * scaleY;
+
+    const containerStyle: CustomCSSProperties = {
+        overflow: 'hidden',
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        minHeight: '400px',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitUserDrag: 'none',
+        touchAction: 'none'
+    };
 
     return (
         <div
@@ -137,25 +154,13 @@ export function PortfolioCanvas({
             className={className}
             draggable={false}
             onDragStart={(e) => e.preventDefault()}
-            style={{
-                overflow: 'hidden',
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                minHeight: '400px',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                WebkitUserDrag: 'none',
-                touchAction: 'none'
-            }}
+            style={containerStyle}
             onMouseDown={handleMouseDown}
         >
-            {/* Background Slot */}
             <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
                 {background}
             </div>
 
-            {/* Panning Layer */}
             <div
                 draggable={false}
                 style={{
@@ -164,16 +169,14 @@ export function PortfolioCanvas({
                     inset: 0,
                     zIndex: 1,
                     cursor: isDragging ? 'grabbing' : 'grab',
-                    willChange: 'transform' // Hardware acceleration optimization
+                    willChange: 'transform'
                 }}
             >
-                {/* Center anchor point for easier item positioning */}
                 <div style={{ position: 'absolute', left: '50%', top: '50%' }}>
                     {children}
                 </div>
             </div>
 
-            {/* Mini Map */}
             <div
                 style={{
                     position: 'absolute',
@@ -186,10 +189,9 @@ export function PortfolioCanvas({
                     borderRadius: '8px',
                     zIndex: 10,
                     overflow: 'hidden',
-                    pointerEvents: 'none' // Let clicks pass through if needed
+                    pointerEvents: 'none'
                 }}
             >
-                {/* Viewport Indicator */}
                 <div
                     style={{
                         position: 'absolute',
@@ -200,12 +202,24 @@ export function PortfolioCanvas({
                         border: '2px solid white',
                         backgroundColor: 'rgba(255, 255, 255, 0.2)',
                         borderRadius: '2px',
-                        transform: 'translate(0, 0)', // keep it cheap to render
+                        transform: 'translate(0, 0)',
                     }}
                 />
             </div>
         </div>
     );
+}
+
+// Type definitions for Item Props
+interface PortfolioItemProps {
+    priority?: number;
+    x?: number;
+    y?: number;
+    imageSlot?: ReactNode;
+    descriptionSlot?: ReactNode;
+    linkSlot?: ReactNode;
+    onItemClick?: () => void;
+    className?: string;
 }
 
 // --- ITEM COMPONENT ---
@@ -218,25 +232,26 @@ export function PortfolioItem({
                                   linkSlot,
                                   onItemClick,
                                   className
-                              }) {
+                              }: PortfolioItemProps) {
     const scale = 1 + (Math.max(1, Math.min(3, priority)) - 1) * 0.5;
+
+    const itemStyle: CustomCSSProperties = {
+        position: 'absolute',
+        left: x,
+        top: y,
+        transform: `translate(-50%, -50%) scale(${scale})`,
+        transformOrigin: 'center center',
+        transition: 'transform 0.2s ease, filter 0.2s ease',
+        cursor: 'pointer',
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitUserDrag: 'none'
+    };
 
     return (
         <div
             className={className}
-            style={{
-                position: 'absolute',
-                // Now x and y are relative to the center of the canvas
-                left: x,
-                top: y,
-                transform: `translate(-50%, -50%) scale(${scale})`,
-                transformOrigin: 'center center',
-                transition: 'transform 0.2s ease, filter 0.2s ease',
-                cursor: 'pointer',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                WebkitUserDrag: 'none'
-            }}
+            style={itemStyle}
             onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.1)')}
             onMouseLeave={(e) => (e.currentTarget.style.filter = 'brightness(1)')}
             onDragStart={(e) => e.preventDefault()}
