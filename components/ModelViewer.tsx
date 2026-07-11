@@ -1,11 +1,35 @@
 ﻿"use client";
 
 import React, { useMemo, Suspense, useEffect, useState, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber'; // <-- Added useFrame here
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stage, useGLTF, Html, useAnimations } from '@react-three/drei';
 import * as THREE from 'three';
 import { clone } from 'three/examples/jsm/utils/SkeletonUtils.js';
-import { createHoloMaterial } from './HoloMaterial'; 
+import { createHoloMaterial } from './HoloMaterial';
+
+// Error Boundary Component ---
+// This catches fetch failures from useGLTF so it doesn't crash Plasmic.
+class ModelErrorBoundary extends React.Component<{ children: React.ReactNode, fallback: React.ReactNode }, { hasError: boolean }> {
+    constructor(props: { children: React.ReactNode, fallback: React.ReactNode }) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+        console.error("ModelViewer failed to load the model:", error, errorInfo);
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return this.props.fallback;
+        }
+        return this.props.children;
+    }
+}
 
 interface InnerModelProps {
     url: string;
@@ -16,13 +40,7 @@ interface InnerModelProps {
 }
 
 // --- Inner Model Wrapper ---
-function Model({
-                   url,
-                   renderMode,
-                   wireframeColor,
-                   flatColor,
-                   animationName
-               }: InnerModelProps) {
+function Model({ url, renderMode, wireframeColor, flatColor, animationName }: InnerModelProps) {
     const { scene, animations } = useGLTF(url);
     const holoMaterialsRef = useRef<THREE.ShaderMaterial[]>([]);
 
@@ -61,12 +79,9 @@ function Model({
 
                 let newMaterial;
 
-                // Check for HOLO material slot
                 if (sourceMaterial && sourceMaterial.name === 'HOLO') {
                     newMaterial = createHoloMaterial();
-
                     newMaterial.uniforms.meshScale.value = 1.0;
-                    
                     holoMaterialsRef.current.push(newMaterial);
                 }
                 else if (isWireframe) {
@@ -109,7 +124,6 @@ function Model({
         };
     }, [processedSceneForModes]);
 
-    // Animate the HOLO shader time uniform
     useFrame(({ clock }) => {
         const time = clock.getElapsedTime();
         holoMaterialsRef.current.forEach((mat) => {
@@ -167,7 +181,6 @@ export const ModelViewer = forwardRef<ModelViewerRef, ModelViewerProps>(({
     const containerRef = useRef<HTMLDivElement>(null);
     const [isVisible, setIsVisible] = useState(false);
     const [isMounted, setIsMounted] = useState(false);
-
     const [currentModelUrl, setCurrentModelUrl] = useState(modelUrl);
 
     useEffect(() => {
@@ -199,28 +212,30 @@ export const ModelViewer = forwardRef<ModelViewerRef, ModelViewerProps>(({
     }
 
     return (
-        <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', minHeight: '300px' }}>
+        <div ref={containerRef} className={className} style={{ width: '100%', height: '100%', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             {isVisible && (
-                <Canvas
-                    dpr={1}
-                    gl={{ antialias: true }}
-                    style={{ imageRendering: 'pixelated' }}
-                    camera={{ fov: 20 }}
-                >
-                    <Suspense fallback={<Html center>Loading 3D Model...</Html>}>
-                        <Stage preset="rembrandt" intensity={1} environment="sunset" shadows={true} adjustCamera={false}>
-                            <Model
-                                key={currentModelUrl} // FIX: Forces React to mount a completely fresh instance when the URL changes
-                                url={currentModelUrl}
-                                renderMode={renderMode}
-                                wireframeColor={wireframeColor}
-                                flatColor={flatColor}
-                                animationName={animationName}
-                            />
-                        </Stage>
-                    </Suspense>
-                    <OrbitControls target={[0, 0, 0]} makeDefault autoRotate={false} enableZoom={false} enablePan={false} minDistance={3} maxDistance={3} />
-                </Canvas>
+                <ModelErrorBoundary fallback={<div style={{ padding: '20px', color: '#ff4444', textAlign: 'center' }}>Failed to load 3D model.</div>}>
+                    <Canvas
+                        dpr={1}
+                        gl={{ antialias: true }}
+                        style={{ imageRendering: 'pixelated' }}
+                        camera={{ fov: 20 }}
+                    >
+                        <Suspense fallback={<Html center>Loading...</Html>}>
+                            <Stage preset="rembrandt" intensity={1} environment="sunset" shadows={true} adjustCamera={false}>
+                                <Model
+                                    key={currentModelUrl}
+                                    url={currentModelUrl}
+                                    renderMode={renderMode}
+                                    wireframeColor={wireframeColor}
+                                    flatColor={flatColor}
+                                    animationName={animationName}
+                                />
+                            </Stage>
+                        </Suspense>
+                        <OrbitControls target={[0, 0, 0]} makeDefault autoRotate={false} enableZoom={false} enablePan={false} minDistance={3} maxDistance={3} />
+                    </Canvas>
+                </ModelErrorBoundary>
             )}
         </div>
     );
