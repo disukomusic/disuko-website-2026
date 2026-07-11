@@ -17,7 +17,7 @@ import { ReactiveBackground} from "@/components/ReactiveBackground";
 import { WindowMinimizeButton } from "@/components/WindowMinimizeButton";
 import { WindowActionBridge } from "@/components/WindowActionBridge";
 import { WindowConfigurator } from "@/components/WindowConfigurator";
-import { BlogProvider } from './components/BlogProvider';
+// import { BlogProvider } from './components/BlogProvider';
 import { BlogAdmin } from './components/BlogAdmin';
 import {UrlQueryOpener} from "@/components/UrlQueryOpener";
 import {WindowGroup} from "@/components/WindowGroup";
@@ -613,20 +613,20 @@ PLASMIC.registerComponent(WindowConfigurator, {
   }
 });
 
-PLASMIC.registerComponent(BlogProvider, {
-  name: 'BlogProvider',
-  providesData: true,
-  props: {
-    apiEndpoint: {
-      type: 'string',
-      defaultValue: 'https://plasmic-blog-api.disukomusic.workers.dev',
-      description: 'The URL of your Cloudflare Worker endpoint'
-    },
-    children: {
-      type: 'slot'
-    }
-  }
-});
+// PLASMIC.registerComponent(BlogProvider, {
+//   name: 'BlogProvider',
+//   providesData: true,
+//   props: {
+//     apiEndpoint: {
+//       type: 'string',
+//       defaultValue: 'https://plasmic-blog-api.disukomusic.workers.dev',
+//       description: 'The URL of your Cloudflare Worker endpoint'
+//     },
+//     children: {
+//       type: 'slot'
+//     }
+//   }
+// });
 
 PLASMIC.registerComponent(BlogAdmin, {
   name: 'BlogAdmin',

@@ -31,6 +31,10 @@ const nextConfig = {
         source: '/CAD',
         destination: '/',
       },
+      {
+        source: '/blog',
+        destination: '/',
+      },
     ];
   },
 };
