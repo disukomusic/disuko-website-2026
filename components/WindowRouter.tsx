@@ -21,13 +21,20 @@ export const WindowRouter = ({ className, defaultRoute = "" }: WindowRouterProps
             }
         };
 
-        // Check the URL immediately on mount
-        handleRoute();
+        // DELAY: Give the <Window /> components a moment to mount and register 
+        // themselves in the store before we try to open their groups.
+        const initTimeout = setTimeout(() => {
+            handleRoute();
+        }, 50); // 50ms is usually plenty of time for React's mount cycle
 
         // Listen for browser back/forward button clicks
         window.addEventListener("popstate", handleRoute);
 
-        return () => window.removeEventListener("popstate", handleRoute);
+        // Cleanup the timeout and listener on unmount
+        return () => {
+            clearTimeout(initTimeout);
+            window.removeEventListener("popstate", handleRoute);
+        };
     }, [openWindowsByGroup, defaultRoute]);
 
     // Renders an invisible div so it can be placed on the Plasmic canvas
