@@ -735,13 +735,47 @@ PLASMIC.registerComponent(PortfolioCanvas, {
   props: {
     children: {
       type: 'slot',
-      allowedComponents: ['Portfolio Item'], // Restrict so only items go here
+      allowedComponents: ['Portfolio Item'],
+      displayName: 'Canvas Content (The Cloud)',
     },
     background: {
       type: 'slot',
+      displayName: 'Background',
+    },
+    expandedView: {
+      type: 'slot',
+      displayName: 'Expanded View Child',
+    },
+    selectedItem: {
+      type: 'object',
+      displayName: 'Selected Item JSON',
+      description: 'Bind the state variable containing the active JSON item here.',
+    },
+    worldWidth: {
+      type: 'number',
+      defaultValue: 4000,
+    },
+    worldHeight: {
+      type: 'number',
+      defaultValue: 4000,
+    },
+  },
+  refActions: {
+    showExpandedView: {
+      description: 'Hides the cloud and opens the Expanded View slot',
+      argTypes: [],
+    },
+    hideExpandedView: {
+      description: 'Closes the Expanded View slot and returns to the cloud',
+      argTypes: [],
+    },
+    toggleExpandedView: {
+      description: 'Toggles between Expanded View and Cloud',
+      argTypes: [],
     },
   },
 });
+
 PLASMIC.registerComponent(PortfolioRoot, {
   name: 'PortfolioRoot',
   displayName: 'Portfolio System (Root)',
