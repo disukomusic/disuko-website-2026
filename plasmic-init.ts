@@ -17,14 +17,17 @@ import { ReactiveBackground} from "@/components/ReactiveBackground";
 import { WindowMinimizeButton } from "@/components/WindowMinimizeButton";
 import { WindowActionBridge } from "@/components/WindowActionBridge";
 import { WindowConfigurator } from "@/components/WindowConfigurator";
-// import { BlogProvider } from './components/BlogProvider';
 import { BlogAdmin } from './components/BlogAdmin';
 import {UrlQueryOpener} from "@/components/UrlQueryOpener";
 import {WindowGroup} from "@/components/WindowGroup";
 import { GlobalVolumeControl } from "@/components/GlobalVolumeControl";
 import { WindowRouter } from "@/components/WindowRouter";
-import { PortfolioCanvas, PortfolioItem } from '@/components/PortfolioSystem';
-
+import {
+  PortfolioCanvas,
+  PortfolioItem,
+  PortfolioRoot,
+  PortfolioItemView
+} from '@/components/PortfolioSystem';
 export const PLASMIC = initPlasmicLoader({
   projects: [
     {
@@ -726,6 +729,7 @@ PLASMIC.registerComponent(WindowRouter, {
   }
 });
 
+// --- EXISTING CANVAS COMPONENTS ---
 PLASMIC.registerComponent(PortfolioCanvas, {
   name: 'Portfolio Canvas',
   props: {
@@ -738,32 +742,83 @@ PLASMIC.registerComponent(PortfolioCanvas, {
     },
   },
 });
+PLASMIC.registerComponent(PortfolioRoot, {
+  name: 'PortfolioRoot',
+  displayName: 'Portfolio System (Root)',
+  providesData: true,
+  props: {
+    apiUrl: {
+      type: 'string',
+      displayName: 'Cloudflare API URL',
+      defaultValue: ''
+    },
+    gap: {
+      type: 'number',
+      defaultValue: 24,
+      displayName: 'Cloud Gap (px)',
+      description: 'Minimum spacing between clustered items. Guarantees no overlaps.'
+    },
+    children: {
+      type: 'slot',
+    }
+  }
+});
 
 PLASMIC.registerComponent(PortfolioItem, {
   name: 'Portfolio Item',
   props: {
-    priority: {
-      type: 'choice',
-      options: ['1', '2', '3'],
-      defaultValue: '1',
-      description: '1 is normal, 3 is largest',
+    itemId: {
+      type: 'string',
+      displayName: 'Item ID',
+      description: 'CRITICAL: Bind this to currentItem._id',
     },
-    x: {
+    computedX: {
       type: 'number',
-      defaultValue: 100,
-      description: 'X coordinate on the canvas',
+      description: 'CRITICAL: Bind this to currentItem.computedX',
     },
-    y: {
+    computedY: {
       type: 'number',
-      defaultValue: 100,
-      description: 'Y coordinate on the canvas',
+      description: 'CRITICAL: Bind this to currentItem.computedY',
     },
-    imageSlot: { type: 'slot' },
-    descriptionSlot: { type: 'slot' },
-    linkSlot: { type: 'slot' },
+    opacity: {
+      type: 'number',
+      description: 'CRITICAL: Bind this to currentItem.opacity',
+    },
+    children: {
+      type: 'slot',
+    },
     onItemClick: {
       type: 'eventHandler',
       argTypes: [],
     },
   },
+});
+
+PLASMIC.registerComponent(PortfolioItemView, {
+  name: 'PortfolioItemView',
+  displayName: 'Portfolio Item View',
+  providesData: true,
+  props: {
+    item: {
+      type: 'object',
+      displayName: 'Repeater Item',
+      description: 'Bind this to currentItem inside a repeating layout.',
+    },
+    isExpanded: {
+      type: 'boolean',
+      defaultValue: false,
+      displayName: 'Is Expanded',
+      description: 'Toggle this to true to show the expanded carousel view.'
+    },
+    previewSlot: {
+      type: 'slot',
+      displayName: 'Preview View',
+      description: 'Shown when isExpanded is false (e.g., Thumbnail and Title)'
+    },
+    expandedSlot: {
+      type: 'slot',
+      displayName: 'Expanded View',
+      description: 'Shown when isExpanded is true (e.g., Carousel and Markdown Description)'
+    }
+  }
 });
