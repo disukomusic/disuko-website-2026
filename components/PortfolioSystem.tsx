@@ -19,7 +19,13 @@ export const PortfolioContext = createContext<any[]>([]);
 
 export const PortfolioLayoutContext = createContext<{
     registerSize: (id: string, w: number, h: number) => void;
-}>({ registerSize: () => {} });
+    hoveredId: string | null;
+    setHoveredId: (id: string | null) => void;
+}>({
+    registerSize: () => {},
+    hoveredId: null,
+    setHoveredId: () => {}
+});
 
 export interface PortfolioItemType {
     _id?: string;
@@ -110,12 +116,10 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
                 const newZoom = Math.max(0.3, Math.min(prevZoom * zoomFactor, 3));
                 const actualScaleChange = newZoom / prevZoom;
 
-                // Get cursor position relative to the center of the viewport
                 const rect = container.getBoundingClientRect();
                 const cursorX = e.clientX - rect.left - viewportSize.width / 2;
                 const cursorY = e.clientY - rect.top - viewportSize.height / 2;
 
-                // Adjust position so the point under the cursor stays fixed
                 setPosition(prevPos => {
                     const nextX = cursorX - (cursorX - prevPos.x) * actualScaleChange;
                     const nextY = cursorY - (cursorY - prevPos.y) * actualScaleChange;
@@ -234,88 +238,93 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
                 {background}
             </div>
 
-            {!isExpanded ? (
-                <>
+            <div style={{
+                visibility: isExpanded ? 'hidden' : 'visible',
+                pointerEvents: isExpanded ? 'none' : 'auto',
+                position: 'absolute',
+                inset: 0
+            }}>
+                <div style={{
+                    transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+                    position: 'absolute',
+                    inset: 0,
+                    zIndex: 1,
+                    cursor: isDragging ? 'grabbing' : 'grab',
+                    willChange: 'transform',
+                    transformOrigin: 'center center'
+                }}>
+                    <div style={{ position: 'absolute', left: '50%', top: '50%' }}>
+                        {children}
+                    </div>
+                </div>
+
+                <div className="minimap-container" style={{
+                    position: 'absolute',
+                    bottom: '96px',
+                    right: '20px',
+                    zIndex: 10,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    gap: '8px'
+                }}>
                     <div style={{
-                        transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-                        position: 'absolute',
-                        inset: 0,
-                        zIndex: 1,
-                        cursor: isDragging ? 'grabbing' : 'grab',
-                        willChange: 'transform',
-                        transformOrigin: 'center center'
-                    }}>
-                        <div style={{ position: 'absolute', left: '50%', top: '50%' }}>
-                            {children}
-                        </div>
+                        width: `${minimapSize}px`,
+                        height: `${minimapSize}px`,
+                        backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                        border: '1px solid rgba(255, 255, 255, 0.2)',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        cursor: isMinimapDragging ? 'grabbing' : 'grab'
+                    }} onMouseDown={handleMinimapMouseDown}>
+                        {items.map((item, i) => {
+                            const dotX = ((item.computedX || 0) + worldWidth / 2) * scaleX;
+                            const dotY = ((item.computedY || 0) + worldHeight / 2) * scaleY;
+                            return (
+                                <div key={i} style={{
+                                    position: 'absolute',
+                                    left: dotX,
+                                    top: dotY,
+                                    width: '4px',
+                                    height: '4px',
+                                    backgroundColor: '#fff',
+                                    borderRadius: '50%',
+                                    transform: 'translate(-50%, -50%)'
+                                }} />
+                            );
+                        })}
+                        <div style={{
+                            position: 'absolute',
+                            left: `${mapViewportX}px`,
+                            top: `${mapViewportY}px`,
+                            width: `${mapViewportWidth}px`,
+                            height: `${mapViewportHeight}px`,
+                            border: '2px solid white',
+                            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                            borderRadius: '2px',
+                            pointerEvents: 'none'
+                        }} />
                     </div>
 
-                    <div className="minimap-container" style={{
-                        position: 'absolute',
-                        bottom: '96px',
-                        right: '20px',
-                        zIndex: 10,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-end',
-                        gap: '8px'
-                    }}>
-                        <div style={{
-                            width: `${minimapSize}px`,
-                            height: `${minimapSize}px`,
-                            backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                            border: '1px solid rgba(255, 255, 255, 0.2)',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            position: 'relative',
-                            cursor: isMinimapDragging ? 'grabbing' : 'grab'
-                        }} onMouseDown={handleMinimapMouseDown}>
-                            {items.map((item, i) => {
-                                const dotX = ((item.computedX || 0) + worldWidth / 2) * scaleX;
-                                const dotY = ((item.computedY || 0) + worldHeight / 2) * scaleY;
-                                return (
-                                    <div key={i} style={{
-                                        position: 'absolute',
-                                        left: dotX,
-                                        top: dotY,
-                                        width: '4px',
-                                        height: '4px',
-                                        backgroundColor: '#fff',
-                                        borderRadius: '50%',
-                                        transform: 'translate(-50%, -50%)'
-                                    }} />
-                                );
-                            })}
-                            <div style={{
-                                position: 'absolute',
-                                left: `${mapViewportX}px`,
-                                top: `${mapViewportY}px`,
-                                width: `${mapViewportWidth}px`,
-                                height: `${mapViewportHeight}px`,
-                                border: '2px solid white',
-                                backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                                borderRadius: '2px',
-                                pointerEvents: 'none'
-                            }} />
-                        </div>
-
-                        <div style={{
-                            opacity: hasMoved ? 1 : 0,
-                            transition: 'opacity 0.2s',
-                            pointerEvents: hasMoved ? 'auto' : 'none',
-                            padding: '4px 8px',
-                            backgroundColor: 'rgba(0,0,0,0.6)',
-                            color: 'white',
-                            fontSize: '10px',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            border: '1px solid rgba(255,255,255,0.2)'
-                        }} onClick={() => { setPosition({ x: 0, y: 0 }); setZoom(1); }}>
-                            Reset View
-                        </div>
+                    <div style={{
+                        opacity: hasMoved ? 1 : 0,
+                        transition: 'opacity 0.2s',
+                        pointerEvents: hasMoved ? 'auto' : 'none',
+                        padding: '4px 8px',
+                        backgroundColor: 'rgba(0,0,0,0.6)',
+                        color: 'white',
+                        fontSize: '10px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        border: '1px solid rgba(255,255,255,0.2)'
+                    }} onClick={() => { setPosition({ x: 0, y: 0 }); setZoom(1); }}>
+                        Reset View
                     </div>
-                </>
-            ) : (
+                </div>
+            </div>
+
+            {isExpanded && (
                 <div style={{ position: 'absolute', inset: 0, zIndex: 100, overflowY: 'auto' }}>
                     <DataProvider name="currentSelectedItem" data={selectedItem}>
                         {expandedView}
@@ -331,9 +340,10 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
     const [portfolioItems, setPortfolioItems] = useState<any[]>([]);
     const [measuredSizes, setMeasuredSizes] = useState<Record<string, {w: number, h: number}>>({});
     const [packedItems, setPackedItems] = useState<any[]>([]);
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     const sizeCache = useRef<Record<string, {w: number, h: number}>>({});
-    const layoutCache = useRef<Record<string, {computedX: number, computedY: number}>>({});
+    const layoutCache = useRef<Record<string, {computedX: number, computedY: number, w: number, h: number}>>({});
 
     useEffect(() => {
         if (!apiUrl) return;
@@ -349,7 +359,7 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
     }, [apiUrl]);
 
     const registerSize = useCallback((id: string, w: number, h: number) => {
-        // Prevent layout thrashing if sizes haven't meaningfully changed
+        if (!w || !h || w <= 0 || h <= 0) return;
         if (sizeCache.current[id]?.w === w && sizeCache.current[id]?.h === h) return;
         sizeCache.current[id] = { w, h };
 
@@ -372,13 +382,16 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
         const newPacked = portfolioItems.map((item) => {
             const size = measuredSizes[item._id];
 
-            // Keep hidden until measured
             if (!size) return { ...item, computedX: 0, computedY: 0, opacity: 0 };
 
-            if (layoutCache.current[item._id]) {
-                const cached = layoutCache.current[item._id];
+            const cached = layoutCache.current[item._id];
+            if (
+                cached &&
+                Math.abs(cached.w - size.w) < 2 &&
+                Math.abs(cached.h - size.h) < 2
+            ) {
                 placed.push({ x: cached.computedX, y: cached.computedY, w: size.w, h: size.h });
-                return { ...item, ...cached, opacity: 1 };
+                return { ...item, computedX: cached.computedX, computedY: cached.computedY, opacity: 1 };
             }
 
             let angle = 0;
@@ -405,7 +418,12 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
 
                 if (!hasCollision) {
                     placed.push(candidate);
-                    layoutCache.current[item._id] = { computedX: x, computedY: y };
+                    layoutCache.current[item._id] = {
+                        computedX: x,
+                        computedY: y,
+                        w: size.w,
+                        h: size.h
+                    };
                     isPlaced = true;
                 } else {
                     angle += step;
@@ -420,7 +438,7 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
     }, [portfolioItems, measuredSizes, gap]);
 
     return (
-        <PortfolioLayoutContext.Provider value={{ registerSize }}>
+        <PortfolioLayoutContext.Provider value={{ registerSize, hoveredId, setHoveredId }}>
             <PortfolioContext.Provider value={packedItems}>
                 <DataProvider name="portfolioItems" data={packedItems}>
                     <div className={className} style={{ display: 'contents' }}>
@@ -442,34 +460,46 @@ export function PortfolioItem({
                                   onItemClick,
                                   className
                               }: any) {
-    const { registerSize } = useContext(PortfolioLayoutContext);
+    const { registerSize, hoveredId, setHoveredId } = useContext(PortfolioLayoutContext);
     const ref = useRef<HTMLDivElement>(null);
     const fallbackId = useId();
     const idToUse = itemId || fallbackId;
 
+    const isHovered = hoveredId === idToUse;
+    const isOtherHovered = hoveredId !== null && !isHovered;
+
+    // Dim to 75% opacity when another item is hovered
+    const displayOpacity = isOtherHovered ? opacity * 0.75 : opacity;
+
     useLayoutEffect(() => {
         if (!ref.current) return;
-        const observer = new ResizeObserver((entries) => {
-            for (let entry of entries) {
-                const { width, height } = entry.contentRect;
-                if (width > 0 && height > 0) {
-                    registerSize(idToUse, width, height);
-                }
+
+        const measureAndRegister = () => {
+            if (!ref.current) return;
+            const width = ref.current.offsetWidth;
+            const height = ref.current.offsetHeight;
+            if (width > 0 && height > 0) {
+                registerSize(idToUse, width, height);
             }
+        };
+
+        const observer = new ResizeObserver(() => {
+            measureAndRegister();
         });
         observer.observe(ref.current);
 
         const handleImageLoad = () => {
-            if (ref.current) {
-                const { width, height } = ref.current.getBoundingClientRect();
-                if (width > 0 && height > 0) registerSize(idToUse, width, height);
-            }
+            measureAndRegister();
         };
         ref.current.addEventListener('load', handleImageLoad, true);
 
+        measureAndRegister();
+
         return () => {
             observer.disconnect();
-            if (ref.current) ref.current.removeEventListener('load', handleImageLoad, true);
+            if (ref.current) {
+                ref.current.removeEventListener('load', handleImageLoad, true);
+            }
         };
     }, [idToUse, registerSize]);
 
@@ -481,17 +511,20 @@ export function PortfolioItem({
                 position: 'absolute',
                 left: computedX,
                 top: computedY,
-                opacity: opacity,
+                opacity: displayOpacity,
+                minHeight: '256px',
                 height: '256px',
                 width: 'max-content',
-                transform: `translate(-50%, -50%)`,
+                transform: `translate(-50%, -50%) scale(${isHovered ? 1.08 : 1})`,
                 transformOrigin: 'center center',
-                transition: 'left 0.4s ease, top 0.4s ease, opacity 0.3s ease, filter 0.2s ease',
+                transition: 'left 0.4s ease, top 0.4s ease, opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease',
                 cursor: 'pointer',
-                display: 'flex'
+                display: 'flex',
+                zIndex: isHovered ? 50 : 1,
+                filter: isHovered ? 'brightness(1.1)' : 'brightness(1)'
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.filter = 'brightness(1.1)')}
-            onMouseLeave={(e) => (e.currentTarget.style.filter = 'brightness(1)')}
+            onMouseEnter={() => setHoveredId(idToUse)}
+            onMouseLeave={() => setHoveredId(null)}
             onDragStart={(e) => e.preventDefault()}
             onClick={(e) => { e.stopPropagation(); if (onItemClick) onItemClick(); }}
         >
