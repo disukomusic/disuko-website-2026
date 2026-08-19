@@ -15,8 +15,10 @@
 import { DataProvider } from '@plasmicapp/host';
 
 // --- SHARED CONTEXTS ---
+// Stores the packed portfolio items so child components can access them
 export const PortfolioContext = createContext<any[]>([]);
 
+// Stores layout functions and hover state for the interactive portfolio pieces
 export const PortfolioLayoutContext = createContext<{
     registerSize: (id: string, w: number, h: number) => void;
     hoveredId: string | null;
@@ -27,6 +29,7 @@ export const PortfolioLayoutContext = createContext<{
     setHoveredId: () => {}
 });
 
+// Definition for a single portfolio piece
 export interface PortfolioItemType {
     _id?: string;
     Title: string;
@@ -39,6 +42,7 @@ export interface PortfolioItemType {
 }
 
 // --- CANVAS COMPONENT ---
+// Handles the infinite panning, zooming, and minimap logic
 export interface PortfolioCanvasActions {
     showExpandedView: () => void;
     hideExpandedView: () => void;
@@ -66,6 +70,7 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
                                                                                          }, ref) => {
     const items = useContext(PortfolioContext);
 
+    // Canvas state for position, zoom, and interaction modes
     const [isExpanded, setIsExpanded] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(1);
@@ -79,12 +84,14 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
     const velocity = useRef({ x: 0, y: 0 });
     const animationFrameRef = useRef<number | null>(null);
 
+    // Expose expansion actions to the parent
     useImperativeHandle(ref, () => ({
         showExpandedView: () => setIsExpanded(true),
         hideExpandedView: () => setIsExpanded(false),
         toggleExpandedView: () => setIsExpanded(prev => !prev)
     }), []);
 
+    // Keeps the viewport from dragging out of bounds
     const clampPosition = (pos: { x: number, y: number }, currentZoom: number) => {
         const limitX = Math.max(0, (worldWidth * currentZoom - viewportSize.width) / 2);
         const limitY = Math.max(0, (worldHeight * currentZoom - viewportSize.height) / 2);
@@ -94,6 +101,7 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
         };
     };
 
+    // Tracks container size for accurate boundaries
     useEffect(() => {
         if (!containerRef.current) return;
         const observer = new ResizeObserver((entries) => {
@@ -104,6 +112,7 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
         return () => observer.disconnect();
     }, []);
 
+    // Handles zooming in and out with the mouse wheel
     useEffect(() => {
         const container = containerRef.current;
         if (!container || isExpanded) return;
@@ -134,6 +143,7 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
         return () => container.removeEventListener('wheel', handleWheel);
     }, [viewportSize, isExpanded]);
 
+    // Triggers standard canvas dragging
     const handleMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
         if (isExpanded) return;
         if ((e.target as HTMLElement).closest('.minimap-container')) return;
@@ -145,11 +155,13 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
         velocity.current = { x: 0, y: 0 };
     };
 
+    // Triggers dragging via the minimap view
     const handleMinimapMouseDown = (e: ReactMouseEvent<HTMLDivElement>) => {
         e.stopPropagation();
         setIsMinimapDragging(true);
     };
 
+    // Processes drag movement and applies friction physics when let go
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (isDragging && !isExpanded) {
@@ -244,6 +256,7 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
                 position: 'absolute',
                 inset: 0
             }}>
+                {/* Main canvas that pans and zooms */}
                 <div style={{
                     transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
                     position: 'absolute',
@@ -258,6 +271,7 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
                     </div>
                 </div>
 
+                {/* Minimap UI element */}
                 <div className="minimap-container" style={{
                     position: 'absolute',
                     bottom: '96px',
@@ -324,6 +338,7 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
                 </div>
             </div>
 
+            {/* View shown when an item is expanded */}
             {isExpanded && (
                 <div style={{ position: 'absolute', inset: 0, zIndex: 100, overflowY: 'auto' }}>
                     <DataProvider name="currentSelectedItem" data={selectedItem}>
@@ -336,6 +351,7 @@ export const PortfolioCanvas = forwardRef<PortfolioCanvasActions, PortfolioCanva
 });
 
 // --- PORTFOLIO ROOT COMPONENT ---
+// Fetches items, measures their size, and calculates their spiral placement
 export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
     const [portfolioItems, setPortfolioItems] = useState<any[]>([]);
     const [measuredSizes, setMeasuredSizes] = useState<Record<string, {w: number, h: number}>>({});
@@ -345,6 +361,7 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
     const sizeCache = useRef<Record<string, {w: number, h: number}>>({});
     const layoutCache = useRef<Record<string, {computedX: number, computedY: number, w: number, h: number}>>({});
 
+    // Fetch portfolio items from the provided API endpoint
     useEffect(() => {
         if (!apiUrl) return;
         fetch(apiUrl)
@@ -358,6 +375,7 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
             .catch(err => console.error("Failed to fetch portfolio:", err));
     }, [apiUrl]);
 
+    // Called by individual items to register their width and height
     const registerSize = useCallback((id: string, w: number, h: number) => {
         if (!w || !h || w <= 0 || h <= 0) return;
         if (sizeCache.current[id]?.w === w && sizeCache.current[id]?.h === h) return;
@@ -366,6 +384,10 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
         setMeasuredSizes(prev => ({ ...prev, [id]: { w, h } }));
     }, []);
 
+    // FIX 3: Check if all items have been successfully measured
+    const allMeasured = portfolioItems.length > 0 && portfolioItems.every(item => measuredSizes[item._id]);
+
+    // Calculate positions using a collision-aware spiral algorithm
     useEffect(() => {
         if (portfolioItems.length === 0) return;
 
@@ -378,22 +400,39 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
             );
         };
 
+        // FIX 1: Check if ANY item needs a layout update due to size change
+        let needsGlobalRepack = false;
+        for (const item of portfolioItems) {
+            const size = measuredSizes[item._id];
+            if (!size) continue;
+
+            const cached = layoutCache.current[item._id];
+            if (!cached || Math.abs(cached.w - size.w) >= 2 || Math.abs(cached.h - size.h) >= 2) {
+                needsGlobalRepack = true;
+                break;
+            }
+        }
+
+        // FIX 1: Wipe the cache so everything packs together seamlessly
+        if (needsGlobalRepack) {
+            layoutCache.current = {};
+        }
+
         const placed: any[] = [];
         const newPacked = portfolioItems.map((item) => {
             const size = measuredSizes[item._id];
 
+            // Hide the item completely if we don't have its dimensions yet
             if (!size) return { ...item, computedX: 0, computedY: 0, opacity: 0 };
 
             const cached = layoutCache.current[item._id];
-            if (
-                cached &&
-                Math.abs(cached.w - size.w) < 2 &&
-                Math.abs(cached.h - size.h) < 2
-            ) {
+            if (cached) {
                 placed.push({ x: cached.computedX, y: cached.computedY, w: size.w, h: size.h });
-                return { ...item, computedX: cached.computedX, computedY: cached.computedY, opacity: 1 };
+                // FIX 3: Wait for all components to measure before fading them in
+                return { ...item, computedX: cached.computedX, computedY: cached.computedY, opacity: allMeasured ? 1 : 0 };
             }
 
+            // Standard spiral placement variables
             let angle = 0;
             let radius = 0;
             const step = 0.5;
@@ -402,6 +441,7 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
             let x = 0, y = 0;
             let isPlaced = false;
 
+            // Spiral outward until an empty spot is found
             while (!isPlaced) {
                 x = radius * Math.cos(angle);
                 y = radius * Math.sin(angle);
@@ -431,11 +471,12 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
                 }
             }
 
-            return { ...item, computedX: x, computedY: y, opacity: 1 };
+            // FIX 3: Only make visible once everything has finished layout
+            return { ...item, computedX: x, computedY: y, opacity: allMeasured ? 1 : 0 };
         });
 
         setPackedItems(newPacked);
-    }, [portfolioItems, measuredSizes, gap]);
+    }, [portfolioItems, measuredSizes, gap, allMeasured]);
 
     return (
         <PortfolioLayoutContext.Provider value={{ registerSize, hoveredId, setHoveredId }}>
@@ -451,6 +492,7 @@ export function PortfolioRoot({ apiUrl, gap = 24, children, className }: any) {
 }
 
 // --- ITEM COMPONENT ---
+// Wraps each piece, measures itself, and handles hover visuals
 export function PortfolioItem({
                                   itemId,
                                   computedX = 0,
@@ -488,6 +530,7 @@ export function PortfolioItem({
         });
         observer.observe(ref.current);
 
+        // Measure again specifically when an image fully loads
         const handleImageLoad = () => {
             measureAndRegister();
         };
@@ -514,6 +557,7 @@ export function PortfolioItem({
                 opacity: displayOpacity,
                 minHeight: '256px',
                 height: '256px',
+                minWidth: '256px', // FIX 2: Default visual width to reserve space
                 width: 'max-content',
                 transform: `translate(-50%, -50%) scale(${isHovered ? 1.08 : 1})`,
                 transformOrigin: 'center center',
@@ -534,6 +578,7 @@ export function PortfolioItem({
 }
 
 // --- PORTFOLIO ITEM VIEW COMPONENT ---
+// Exposes data securely to standard Plasmic slots
 export function PortfolioItemView({
                                       item,
                                       previewSlot,
@@ -541,6 +586,7 @@ export function PortfolioItemView({
                                       isExpanded = false,
                                       className
                                   }: any) {
+    // Fills out dummy data for inside the visual editor
     const itemData = item ? {
         ...item,
         mainImage: item.Images?.length > 0 ? item.Images[0] : "",
