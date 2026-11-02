@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1066.0",
-    "@plasmicapp/loader-nextjs": "^2.0.4",
+    "@plasmicapp/loader-nextjs": "^2.0.30",
     "@react-three/drei": "^9.122.0",
     "@react-three/fiber": "^8.18.0",
     "@react-three/postprocessing": "^2.19.1",
